@@ -1,0 +1,26 @@
+{
+  "css.validate": false,
+  "scss.validate": false,
+  "less.validate": false,
+  "css.customData": [".vscode/css_custom_data.json"],
+  "emmet.includeLanguages": {
+    "html": "html",
+    "angular-html": "html"
+  },
+  "files.associations": {
+    "*.html": "html"
+  },
+  "editor.quickSuggestions": {
+    "strings": true
+  },
+  "tailwindCSS.includeLanguages": {
+    "html": "html",
+    "angular-html": "html",
+    "angular": "html"
+  },
+  "tailwindCSS.experimental.classRegex": [
+    "class[:]\\s*['\"]([^'\"]*)['\"]",
+    "ngClass[:]\\s*['\"]([^'\"]*)['\"]",
+    "\\[ngClass\\]=['\"]([^'\"]*)['\"]"
+  ]
+}

@@ -1,0 +1,43 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Outer geometric border -->
+  <defs>
+    <pattern id="trianglePattern" patternUnits="userSpaceOnUse" width="20" height="20">
+      <path d="M3,3 L17,3 L10,17 Z" fill="none" stroke="#666" stroke-width="2"/>
+    </pattern>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="100" cy="100" r="95" fill="white" stroke="#666" stroke-width="2"/>
+  
+  <!-- Decorative border pattern -->
+  <circle cx="100" cy="100" r="85" fill="none" stroke="#666" stroke-width="1" stroke-dasharray="5,5"/>
+  
+  <!-- Concentric green circles (representing growth/rings) -->
+  <circle cx="100" cy="100" r="75" fill="none" stroke="#8bc34a" stroke-width="8" opacity="0.3"/>
+  <circle cx="100" cy="100" r="65" fill="none" stroke="#8bc34a" stroke-width="6" opacity="0.5"/>
+  <circle cx="100" cy="100" r="55" fill="none" stroke="#8bc34a" stroke-width="4" opacity="0.7"/>
+  <circle cx="100" cy="100" r="45" fill="none" stroke="#8bc34a" stroke-width="3" opacity="0.9"/>
+  
+  <!-- Central sun/mango -->
+  <circle cx="100" cy="100" r="20" fill="#ff9800"/>
+  
+  <!-- Leaves -->
+  <path d="M70,130 Q60,120 65,105 Q70,90 85,95 Q90,100 85,115 Q80,130 70,130" fill="#2d8f47"/>
+  <path d="M130,130 Q140,120 135,105 Q130,90 115,95 Q110,100 115,115 Q120,130 130,130" fill="#2d8f47"/>
+  
+  <!-- Leaf highlights -->
+  <path d="M72,125 Q68,118 70,110 Q72,105 78,107" fill="none" stroke="#4caf50" stroke-width="2" opacity="0.6"/>
+  <path d="M128,125 Q132,118 130,110 Q128,105 122,107" fill="none" stroke="#4caf50" stroke-width="2" opacity="0.6"/>
+  
+  <!-- Geometric border elements -->
+  <g stroke="#666" stroke-width="2" fill="none">
+    <!-- Top -->
+    <path d="M80,15 L85,25 L90,15 L95,25 L100,15 L105,25 L110,15 L115,25 L120,15"/>
+    <!-- Right -->
+    <path d="M185,80 L175,85 L185,90 L175,95 L185,100 L175,105 L185,110 L175,115 L185,120"/>
+    <!-- Bottom -->
+    <path d="M120,185 L115,175 L110,185 L105,175 L100,185 L95,175 L90,185 L85,175 L80,185"/>
+    <!-- Left -->
+    <path d="M15,120 L25,115 L15,110 L25,105 L15,100 L25,95 L15,90 L25,85 L15,80"/>
+  </g>
+</svg>
