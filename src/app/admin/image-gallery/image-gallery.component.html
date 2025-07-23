@@ -1,0 +1,222 @@
+<div class="min-h-screen bg-gradient-to-br from-green-50 via-white to-orange-50 p-6">
+  
+  <!-- Header -->
+  <div class="mb-8">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center space-x-4">
+        <button (click)="navigateToDashboard()" 
+                class="bg-white p-2 rounded-lg shadow hover:shadow-md transition-shadow">
+          <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+          </svg>
+        </button>
+        <div>
+          <h1 class="text-3xl font-bold text-gray-800">Image Gallery</h1>
+          <p class="text-gray-600">Manage and review classified mango images</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-4">
+        <span class="text-sm text-gray-500">{{ totalImages }} total images</span>
+        <button (click)="loadImages()" class="bg-white p-2 rounded-lg shadow hover:shadow-md transition-shadow">
+          <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Disease Type</label>
+        <select [(ngModel)]="selectedDisease" (change)="onFilterChange()" 
+                class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+          <option value="">All Diseases</option>
+          <option value="Anthracnose">Anthracnose</option>
+          <option value="Bacterial Canker">Bacterial Canker</option>
+          <option value="Cutting Weevil">Cutting Weevil</option>
+          <option value="Die Back">Die Back</option>
+          <option value="Gall Midge">Gall Midge</option>
+          <option value="Healthy">Healthy</option>
+          <option value="Powdery Mildew">Powdery Mildew</option>
+          <option value="Sooty Mould">Sooty Mould</option>
+          <option value="Alternaria">Alternaria</option>
+          <option value="Black Mould Rot">Black Mould Rot</option>
+          <option value="Stem End Rot">Stem End Rot</option>
+        </select>
+      </div>
+      
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Image Type</label>
+        <select [(ngModel)]="selectedType" (change)="onFilterChange()" 
+                class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+          <option value="all">All Types</option>
+          <option value="leaf">Leaf Images</option>
+          <option value="fruit">Fruit Images</option>
+        </select>
+      </div>
+      
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Verification Status</label>
+        <select [(ngModel)]="selectedVerification" (change)="onFilterChange()" 
+                class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+          <option value="all">All Status</option>
+          <option value="verified">Verified</option>
+          <option value="unverified">Unverified</option>
+        </select>
+      </div>
+      
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Search</label>
+        <input type="text" [(ngModel)]="searchTerm" (input)="onSearch()" 
+               placeholder="Search by disease or notes..."
+               class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+      </div>
+    </div>
+    
+    <!-- Bulk Actions -->
+    <div *ngIf="selectedImages.length > 0" class="flex items-center space-x-4 pt-4 border-t">
+      <span class="text-sm text-gray-600">{{ selectedImages.length }} selected</span>
+      <button (click)="selectAll()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+        Select All
+      </button>
+      <button (click)="bulkVerify()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+        Verify Selected
+      </button>
+      <button (click)="bulkDelete()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors">
+        Delete Selected
+      </button>
+      <button (click)="deselectAll()" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">
+        Deselect All
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="text-center py-12">
+    <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-green-600 mx-auto"></div>
+    <p class="mt-4 text-gray-600">Loading images...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="text-center py-12">
+    <div class="text-red-500 text-xl mb-4">⚠️</div>
+    <p class="text-gray-600 mb-4">{{ error }}</p>
+    <button (click)="loadImages()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+      Retry
+    </button>
+  </div>
+
+  <!-- Image Grid -->
+  <div *ngIf="!loading && !error" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 image-grid">
+    <div *ngFor="let image of filteredImages" 
+         class="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 image-card">
+      
+      <!-- Image -->
+      <div class="relative">
+        <img [src]="image.image_url" [alt]="image.disease_classification" 
+             class="w-full h-48 object-cover">
+        
+        <!-- Selection Checkbox -->
+        <div class="absolute top-2 left-2">
+          <input type="checkbox" 
+                 [checked]="selectedImages.includes(image.id)"
+                 (change)="toggleImageSelection(image.id)"
+                 class="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500">
+        </div>
+        
+        <!-- Verification Status -->
+        <div class="absolute top-2 right-2">
+          <span *ngIf="image.is_verified" class="bg-green-500 text-white px-2 py-1 rounded-full text-xs">
+            ✓ Verified
+          </span>
+          <span *ngIf="!image.is_verified" class="bg-yellow-500 text-white px-2 py-1 rounded-full text-xs">
+            ⚠ Unverified
+          </span>
+        </div>
+        
+        <!-- Image Overlay -->
+        <div class="absolute inset-0 image-overlay"></div>
+      </div>
+      
+      <!-- Image Info -->
+      <div class="p-4">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="font-semibold text-gray-800">{{ image.disease_classification }}</h3>
+          <span class="text-xs px-2 py-1 rounded-full"
+                [ngClass]="image.disease_type === 'leaf' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'">
+            {{ image.disease_type }}
+          </span>
+        </div>
+        
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-sm text-gray-600">Confidence:</span>
+          <span class="text-sm font-medium" [ngClass]="getConfidenceColor(image.confidence_score)">
+            {{ getConfidenceText(image.confidence_score) }}
+          </span>
+        </div>
+        
+        <div class="text-xs text-gray-500 mb-3">
+          Uploaded: {{ image.upload_date | date:'short' }}
+        </div>
+        
+        <div *ngIf="image.notes" class="text-xs text-gray-600 mb-3 italic">
+          Note: {{ image.notes }}
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="flex items-center space-x-2">
+          <button *ngIf="!image.is_verified" 
+                  (click)="updateImageVerification(image, true)"
+                  class="flex-1 bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition-colors">
+            Verify
+          </button>
+          <button *ngIf="image.is_verified" 
+                  (click)="updateImageVerification(image, false)"
+                  class="flex-1 bg-yellow-600 text-white px-3 py-1 rounded text-sm hover:bg-yellow-700 transition-colors">
+            Unverify
+          </button>
+          <button (click)="deleteImage(image.id)"
+                  class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700 transition-colors">
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!loading && !error && filteredImages.length === 0" class="text-center py-12">
+    <div class="text-gray-400 text-6xl mb-4">📷</div>
+    <h3 class="text-xl font-semibold text-gray-600 mb-2">No images found</h3>
+    <p class="text-gray-500">Try adjusting your filters or upload some images.</p>
+    <button (click)="navigateToDashboard()" 
+            class="mt-4 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors">
+      Back to Dashboard
+    </button>
+  </div>
+
+  <!-- Pagination -->
+  <div *ngIf="!loading && !error && filteredImages.length > 0 && getTotalPages() > 1" 
+       class="mt-8 flex justify-center">
+    <div class="flex items-center space-x-2">
+      <button (click)="onPageChange(currentPage - 1)" 
+              [disabled]="!canGoPrevious()"
+              class="px-3 py-1 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+        Previous
+      </button>
+      
+      <span class="text-sm text-gray-600 mx-4">
+        Page {{ currentPage }} of {{ getTotalPages() }}
+      </span>
+      
+      <button (click)="onPageChange(currentPage + 1)" 
+              [disabled]="!canGoNext()"
+              class="px-3 py-1 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+        Next
+      </button>
+    </div>
+  </div>
+</div>
