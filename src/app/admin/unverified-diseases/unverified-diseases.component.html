@@ -1,0 +1,66 @@
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Unverified Diseases</h1>
+        <button class="btn btn-primary" (click)="loadImages()">
+          <i class="fas fa-sync-alt"></i> Refresh
+        </button>
+      </div>
+
+      <!-- Loading State -->
+      <div *ngIf="loading" class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="sr-only">Loading...</span>
+        </div>
+        <p class="mt-3">Loading unverified diseases...</p>
+      </div>
+
+      <!-- Error State -->
+      <div *ngIf="error && !loading" class="alert alert-danger" role="alert">
+        <i class="fas fa-exclamation-triangle"></i>
+        {{ error }}
+      </div>
+
+      <!-- Filters -->
+      <div *ngIf="!loading && !error" class="row mb-4">
+        <div class="col-md-4">
+          <label for="diseaseFilter" class="form-label">Filter by Disease:</label>
+          <select id="diseaseFilter" class="form-select" [(ngModel)]="selectedDisease" (change)="onFilterChange()">
+            <option value="all">All Diseases</option>
+            <option *ngFor="let disease of availableDiseases" [value]="disease">{{ disease }}</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Content -->
+      <div *ngIf="!loading && !error">
+        <!-- Images Grid -->
+        <div *ngIf="images.length > 0" class="row">
+          <div *ngFor="let image of images" class="col-lg-4 col-md-6 mb-4">
+            <div class="card shadow">
+              <img [src]="image.image_url || image.image" [alt]="image.original_filename" class="card-img-top" style="height: 200px; object-fit: cover;">
+              <div class="card-body">
+                <h5 class="card-title">{{ image.predicted_class }}</h5>
+                <p class="card-text">
+                  <small class="text-muted">Uploaded: {{ image.uploaded_at | date:'short' }}</small><br>
+                  <small class="text-muted">Confidence: {{ image.confidence_score | number:'1.2-2' }}%</small>
+                </p>
+                <button class="btn btn-success btn-sm" (click)="verifyImage(image)">
+                  <i class="fas fa-check"></i> Verify
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- No Results -->
+        <div *ngIf="images.length === 0" class="text-center py-5">
+          <i class="fas fa-check-circle text-success" style="font-size: 3rem;"></i>
+          <h4 class="mt-3">All diseases have been verified!</h4>
+          <p class="text-muted">There are no unverified diseases at the moment.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

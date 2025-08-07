@@ -1,0 +1,290 @@
+/* User Confirmations Component Styles */
+
+.user-confirmations-container {
+  padding: 1.5rem;
+  min-height: 100vh;
+  background-color: #f9fafb;
+}
+
+/* Custom scrollbar for confirmation lists */
+.max-h-96 {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e0 #f7fafc;
+}
+
+.max-h-96::-webkit-scrollbar {
+  width: 6px;
+}
+
+.max-h-96::-webkit-scrollbar-track {
+  background: #f7fafc;
+  border-radius: 3px;
+}
+
+.max-h-96::-webkit-scrollbar-thumb {
+  background: #cbd5e0;
+  border-radius: 3px;
+}
+
+.max-h-96::-webkit-scrollbar-thumb:hover {
+  background: #a0aec0;
+}
+
+/* Animation for expanding groups */
+.expanded-content {
+  animation: expandDown 0.3s ease-out;
+}
+
+@keyframes expandDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 1000px;
+  }
+}
+
+/* Hover effects for confirmation items */
+.confirmation-item {
+  transition: all 0.2s ease-in-out;
+}
+
+.confirmation-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Status badges */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.status-correct {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.status-incorrect {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+/* Image preview styles */
+.image-preview {
+  transition: transform 0.2s ease-in-out;
+}
+
+.image-preview:hover {
+  transform: scale(1.05);
+}
+
+/* Loading states */
+.loading-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .user-confirmations-container {
+    padding: 1rem;
+  }
+  
+  .grid-cols-6 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  
+  .lg\\:grid-cols-2 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .grid-cols-6 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+  
+  .md\\:grid-cols-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Table responsive scrolling */
+.table-container {
+  overflow-x: auto;
+  border-radius: 0.5rem;
+}
+
+/* Custom focus styles */
+.focus\\:ring-blue-500:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: #3b82f6;
+}
+
+/* Button disabled states */
+.disabled\\:bg-gray-400:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* Accuracy indicators */
+.accuracy-high {
+  color: #059669;
+}
+
+.accuracy-medium {
+  color: #d97706;
+}
+
+.accuracy-low {
+  color: #dc2626;
+}
+
+/* Filter panel */
+.filter-panel {
+  background: linear-gradient(to right, #ffffff, #f8fafc);
+  border: 1px solid #e5e7eb;
+}
+
+/* Statistics cards */
+.stat-card {
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+}
+
+/* Empty state styling */
+.empty-state {
+  background: radial-gradient(circle at center, #f8fafc, #ffffff);
+}
+
+/* Confirmation feedback text */
+.feedback-text {
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+/* Location indicator */
+.location-indicator {
+  display: inline-flex;
+  align-items: center;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.location-indicator i {
+  margin-right: 0.25rem;
+  color: #9ca3af;
+}
+
+/* Export button animation */
+.export-button {
+  position: relative;
+  overflow: hidden;
+}
+
+.export-button::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.3s ease, height 0.3s ease;
+}
+
+.export-button:hover::before {
+  width: 100%;
+  height: 100%;
+}
+
+/* Pagination styling */
+.pagination-button {
+  transition: all 0.2s ease-in-out;
+}
+
+.pagination-button:hover:not(:disabled) {
+  background-color: #f3f4f6;
+  transform: translateY(-1px);
+}
+
+.pagination-button.active {
+  background-color: #3b82f6;
+  color: white;
+  box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+}
+
+/* Group header styles */
+.group-header {
+  border-left: 4px solid transparent;
+  transition: border-color 0.2s ease-in-out;
+}
+
+.group-header:hover {
+  border-left-color: #3b82f6;
+}
+
+.group-header.expanded {
+  border-left-color: #10b981;
+}
+
+/* Confirmation timeline */
+.confirmation-timeline {
+  position: relative;
+}
+
+.confirmation-timeline::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: #e5e7eb;
+}
+
+.timeline-item {
+  position: relative;
+  padding-left: 24px;
+}
+
+.timeline-item::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #3b82f6;
+}
+
+.timeline-item.correct::before {
+  background-color: #10b981;
+}
+
+.timeline-item.incorrect::before {
+  background-color: #ef4444;
+}

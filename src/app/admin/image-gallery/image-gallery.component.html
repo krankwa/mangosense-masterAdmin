@@ -1,0 +1,455 @@
+<div class="min-h-screen bg-gradient-to-br from-green-50 via-white to-orange-50 p-6">
+  
+  <!-- Header -->
+  <div class="mb-8">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center space-x-4">
+        <button (click)="navigateToDashboard()" 
+                class="bg-white p-2 rounded-lg shadow hover:shadow-md transition-shadow">
+          <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+          </svg>
+        </button>
+        <div>
+          <h1 class="text-3xl font-bold text-gray-800">Image Gallery</h1>
+          <p class="text-gray-600">Manage and review classified mango images</p>
+        </div>
+      </div>
+      <div class="flex items-center space-x-4">
+        <span class="text-sm text-gray-500">{{ totalImages }} total images</span>
+        
+        <!-- Download Actions Dropdown -->
+        <div class="relative">
+          <button class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center"
+                  onclick="this.nextElementSibling.classList.toggle('hidden')">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3 3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            Download
+            <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+            </svg>
+          </button>
+          <div class="hidden absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border z-50">
+            <div class="py-2">
+              <button (click)="downloadAllFilteredImages()" 
+                      class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                Download All Filtered ({{ filteredImages.length }})
+              </button>
+              <button (click)="downloadByVerification(true)" 
+                      class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Download Verified Images
+              </button>
+              <button (click)="downloadByVerification(false)" 
+                      class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                Download Unverified Images
+              </button>
+              <div *ngIf="availableDiseases.length > 0" class="border-t pt-2">
+                <div class="px-4 py-2 text-xs text-gray-500 font-semibold uppercase">By Disease Type</div>
+                <button *ngFor="let disease of availableDiseases.slice(0, 5)" 
+                        (click)="downloadByDisease(disease)"
+                        class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                  <svg class="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
+                  </svg>
+                  {{ disease }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <button (click)="toggleDebugInfo()" 
+                class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition-colors">
+          {{ showDebugInfo ? 'Hide' : 'Show' }} Debug Info
+        </button>
+        <button (click)="loadImages()" class="bg-white p-2 rounded-lg shadow hover:shadow-md transition-shadow">
+          <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Debug Panel -->
+  <div *ngIf="showDebugInfo" class="fixed top-4 right-4 bg-black bg-opacity-90 text-white p-4 rounded-lg max-w-md z-50">
+    <h3 class="font-bold mb-2">🔍 Debug Information</h3>
+    <div class="text-xs">
+      <p><strong>API URL:</strong> {{ apiUrl }}</p>
+      <p><strong>Total Images:</strong> {{ images.length }}</p>
+      <p><strong>Failed Images:</strong> {{ getFailedImagesCount() }}</p>
+      <div class="flex gap-1 mt-2">
+        <button (click)="testBasicUrl()" class="bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-600">
+          Test Basic URL
+        </button>
+        <button (click)="testAllImages()" class="bg-green-500 text-white px-2 py-1 rounded text-xs hover:bg-green-600">
+          Test All Images
+        </button>
+        <button (click)="enableStaticMode()" class="bg-orange-500 text-white px-2 py-1 rounded text-xs hover:bg-orange-600">
+          Static Mode
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Test Image Element -->
+  <div *ngIf="showDebugInfo" class="fixed bottom-4 right-4 bg-white p-4 rounded-lg shadow-lg max-w-sm z-50">
+    <h4 class="font-bold mb-2">URL Test</h4>
+    <img 
+      src="https://mango-deployment-production.up.railway.app/media/mango_images/image_0RUOO8G.jpg" 
+      alt="Test Image" 
+      class="w-full h-32 object-cover border"
+      (load)="onTestImageLoad()"
+      (error)="onTestImageError($event)"
+    />
+    <p class="text-xs mt-1">Testing direct URL access</p>
+  </div>
+
+  <!-- Filters -->
+  <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Disease Type</label>
+        <select [(ngModel)]="selectedDisease" (change)="onFilterChange()" 
+                class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+          <option value="">All Diseases</option>
+          <option value="Anthracnose">Anthracnose</option>
+          <option value="Bacterial Canker">Bacterial Canker</option>
+          <option value="Cutting Weevil">Cutting Weevil</option>
+          <option value="Die Back">Die Back</option>
+          <option value="Gall Midge">Gall Midge</option>
+          <option value="Healthy">Healthy</option>
+          <option value="Powdery Mildew">Powdery Mildew</option>
+          <option value="Sooty Mould">Sooty Mould</option>
+          <option value="Alternaria">Alternaria</option>
+          <option value="Black Mould Rot">Black Mould Rot</option>
+          <option value="Stem End Rot">Stem End Rot</option>
+        </select>
+      </div>
+      
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Image Type</label>
+        <select [(ngModel)]="selectedType" (change)="onFilterChange()" 
+                class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+          <option value="all">All Types</option>
+          <option value="leaf">🍃 Leaf Images</option>
+          <option value="fruit">🥭 Fruit Images</option>
+        </select>
+      </div>
+      
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Verification Status</label>
+        <select [(ngModel)]="selectedVerification" (change)="onFilterChange()" 
+                class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+          <option value="all">All Status</option>
+          <option value="verified">Verified Only</option>
+          <option value="unverified">Unverified Only</option>
+        </select>
+      </div>
+      
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Search</label>
+        <div class="relative">
+          <input type="text" [(ngModel)]="searchTerm" (input)="onSearchInput()" (keyup.enter)="onSearch()"
+                 placeholder="Search by disease or filename..."
+                 class="w-full p-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+          <button *ngIf="searchTerm" (click)="clearSearch()" 
+                  class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Bulk Actions -->
+    <div *ngIf="getSelectedCount() > 0" class="flex items-center space-x-4 pt-4 border-t">
+      <span class="text-sm text-gray-600">{{ getSelectedCount() }} selected</span>
+      <button (click)="selectAll()" 
+              [disabled]="getSelectedCount() === filteredImages.length"
+              class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed">
+        Select All ({{ filteredImages.length }})
+      </button>
+      <button (click)="bulkVerify()" 
+              [disabled]="bulkOperationInProgress"
+              class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed">
+        <span *ngIf="!bulkOperationInProgress">Verify Selected</span>
+        <span *ngIf="bulkOperationInProgress" class="flex items-center">
+          <svg class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          Verifying...
+        </span>
+      </button>
+      <button (click)="bulkDelete()" 
+              [disabled]="bulkOperationInProgress"
+              class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed">
+        <span *ngIf="!bulkOperationInProgress">Delete Selected</span>
+        <span *ngIf="bulkOperationInProgress" class="flex items-center">
+          <svg class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          Deleting...
+        </span>
+      </button>
+      <button (click)="downloadSelectedImages()" 
+              [disabled]="bulkOperationInProgress"
+              class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed">
+        <span *ngIf="!bulkOperationInProgress" class="flex items-center">
+          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3 3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+          Download Selected
+        </span>
+        <span *ngIf="bulkOperationInProgress" class="flex items-center">
+          <svg class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          Downloading...
+        </span>
+      </button>
+      <button (click)="deselectAll()" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">
+        Deselect All
+      </button>
+    </div>
+    
+    <!-- Summary when no selection -->
+    <div *ngIf="getSelectedCount() === 0 && !loading && !error" class="flex items-center justify-between pt-4 border-t">
+      <span class="text-sm text-gray-600">
+        Showing {{ getFilteredImages().length }} of {{ totalImages }} images
+        <span *ngIf="currentPage > 1 || totalPages > 1">
+          (Page {{ currentPage }} of {{ totalPages }})
+        </span>
+      </span>
+      <button (click)="selectAll()" 
+              [disabled]="getFilteredImages().length === 0"
+              class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed">
+        Select All on Page
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="text-center py-12">
+    <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-green-600 mx-auto"></div>
+    <p class="mt-4 text-gray-600">Loading images...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="text-center py-12">
+    <div class="text-red-500 text-xl mb-4">⚠️</div>
+    <p class="text-gray-600 mb-4">{{ error }}</p>
+    <button (click)="loadImages()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+      Retry
+    </button>
+  </div>
+
+  <!-- Image Grid -->
+  <div *ngIf="!loading && !error" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 image-grid">
+    <div *ngFor="let image of getFilteredImages()" 
+         class="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 image-card"
+         [class.ring-4]="isImageSelected(image.id)"
+         [class.ring-blue-500]="isImageSelected(image.id)">
+      
+      <!-- Image -->
+      <div class="relative"
+           [class.opacity-90]="isImageSelected(image.id)">
+        <!-- Primary image with multiple fallbacks -->
+        <img [src]="getImageUrl(image)" 
+             [alt]="image.disease_classification || image.original_filename" 
+             class="w-full h-48 object-cover"
+             (error)="onImageError($event, image)"
+             (load)="onImageLoad($event, image)"
+             [title]="'Original: ' + image.original_filename"
+             loading="lazy">
+        
+        <!-- Static fallback overlay when image fails -->
+        <div *ngIf="image.hasError" class="absolute inset-0 image-fallback">
+          <div class="mango-icon">🥭</div>
+          <div class="fallback-text">
+            <div>Image Not Available</div>
+            <div class="filename">{{ image.original_filename }}</div>
+          </div>
+          <div class="absolute bottom-2 right-2">
+            <button (click)="retryImage(image)" 
+                    class="bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-600 transition-colors">
+              🔄 Retry
+            </button>
+          </div>
+        </div>
+        
+        <!-- Selection overlay -->
+        <div *ngIf="isImageSelected(image.id)" class="absolute inset-0 bg-blue-500 bg-opacity-20 flex items-center justify-center">
+          <svg class="w-8 h-8 text-blue-600 bg-white rounded-full p-1" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+          </svg>
+        </div>
+        
+        <!-- Debug info - enhanced for troubleshooting -->
+        <div *ngIf="showDebugInfo" class="absolute bottom-0 left-0 right-0 bg-black bg-opacity-90 text-white text-xs p-2 max-h-32 overflow-y-auto">
+          <div>ID: {{ image.id }}</div>
+          <div>Original URL: {{ image.image_url || image.image }}</div>
+          <div>Processed URL: {{ getImageUrl(image) }}</div>
+          <div>File: {{ image.original_filename }}</div>
+          <div>Type: {{ getDiseaseType(image) }}</div>
+          <div>Has Error: {{ image.hasError ? 'Yes' : 'No' }}</div>
+          <div class="flex gap-1 mt-1">
+            <button (click)="testImageUrl(image)" class="bg-blue-500 text-white px-2 py-1 rounded text-xs hover:bg-blue-600">
+              Test URLs
+            </button>
+            <button (click)="retryImage(image)" class="bg-green-500 text-white px-2 py-1 rounded text-xs hover:bg-green-600">
+              Retry
+            </button>
+          </div>
+        </div>
+        
+        <!-- Selection Checkbox -->
+        <div class="absolute top-2 left-2">
+          <input type="checkbox" 
+                 [checked]="isImageSelected(image.id)"
+                 (change)="toggleImageSelection(image.id)"
+                 class="w-5 h-5 text-green-600 bg-white border-2 border-gray-300 rounded focus:ring-green-500 focus:ring-2 cursor-pointer">
+        </div>
+        
+        <!-- Verification Status -->
+        <div class="absolute top-2 right-2">
+          <span *ngIf="image.is_verified" class="bg-green-500 text-white px-2 py-1 rounded-full text-xs">
+            ✓ Verified
+          </span>
+          <span *ngIf="!image.is_verified" class="bg-yellow-500 text-white px-2 py-1 rounded-full text-xs">
+            ⚠ Unverified
+          </span>
+        </div>
+        
+        <!-- Image Overlay -->
+        <div class="absolute inset-0 image-overlay"></div>
+      </div>
+      
+      <!-- Image Info -->
+      <div class="p-4">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="font-semibold text-gray-800">{{ image.disease_classification }}</h3>
+          <span class="text-xs px-2 py-1 rounded-full"
+                [ngClass]="getDiseaseType(image) === 'leaf' ? 'bg-green-100 text-green-800' : 
+                          getDiseaseType(image) === 'fruit' ? 'bg-orange-100 text-orange-800' : 
+                          'bg-gray-100 text-gray-800'"
+                [title]="'Disease: ' + image.disease_classification + ', Type: ' + image.disease_type + ', Computed: ' + getDiseaseType(image)">
+            {{ getDiseaseType(image) }}
+          </span>
+        </div>
+        
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-sm text-gray-600">Confidence:</span>
+          <span class="text-sm font-medium" [ngClass]="getConfidenceColor(image.confidence_score)">
+            {{ getConfidenceText(image.confidence_score) }}
+          </span>
+        </div>
+        
+        <div class="text-xs text-gray-500 mb-3">
+          Uploaded: {{ image.upload_date | date:'short' }}
+        </div>
+        
+        <div *ngIf="image.notes" class="text-xs text-gray-600 mb-3 italic">
+          Note: {{ image.notes }}
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="flex items-center space-x-2">
+          <button (click)="viewImageDetails(image.id)"
+                  class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition-colors">
+            👁 Details
+          </button>
+          <button (click)="downloadImage(image)"
+                  class="bg-purple-600 text-white px-3 py-1 rounded text-sm hover:bg-purple-700 transition-colors flex items-center">
+            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3 3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            Download
+          </button>
+          <button *ngIf="!image.is_verified" 
+                  (click)="updateImageVerification(image, true)"
+                  [disabled]="updatingVerificationId === image.id"
+                  class="flex-1 bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed">
+            <span *ngIf="updatingVerificationId !== image.id">Verify</span>
+            <span *ngIf="updatingVerificationId === image.id" class="flex items-center justify-center">
+              <svg class="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            </span>
+          </button>
+          <button *ngIf="image.is_verified" 
+                  (click)="updateImageVerification(image, false)"
+                  [disabled]="updatingVerificationId === image.id"
+                  class="flex-1 bg-yellow-600 text-white px-3 py-1 rounded text-sm hover:bg-yellow-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed">
+            <span *ngIf="updatingVerificationId !== image.id">Unverify</span>
+            <span *ngIf="updatingVerificationId === image.id" class="flex items-center justify-center">
+              <svg class="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            </span>
+          </button>
+          <button (click)="deleteImage(image.id)"
+                  [disabled]="deletingImageId === image.id"
+                  class="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed">
+            <span *ngIf="deletingImageId !== image.id">Delete</span>
+            <span *ngIf="deletingImageId === image.id" class="flex items-center justify-center">
+              <svg class="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            </span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!loading && !error && filteredImages.length === 0" class="text-center py-12">
+    <div class="text-gray-400 text-6xl mb-4">📷</div>
+    <h3 class="text-xl font-semibold text-gray-600 mb-2">No images found</h3>
+    <p class="text-gray-500">Try adjusting your filters or upload some images.</p>
+    <button (click)="navigateToDashboard()" 
+            class="mt-4 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors">
+      Back to Dashboard
+    </button>
+  </div>
+
+  <!-- Pagination -->
+  <div *ngIf="!loading && !error && filteredImages.length > 0 && getTotalPages() > 1" 
+       class="mt-8 flex justify-center">
+    <div class="flex items-center space-x-2">
+      <button (click)="onPageChange(currentPage - 1)" 
+              [disabled]="!canGoPrevious()"
+              class="px-3 py-1 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+        Previous
+      </button>
+      
+      <span class="text-sm text-gray-600 mx-4">
+        Page {{ currentPage }} of {{ getTotalPages() }}
+      </span>
+      
+      <button (click)="onPageChange(currentPage + 1)" 
+              [disabled]="!canGoNext()"
+              class="px-3 py-1 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+        Next
+      </button>
+    </div>
+  </div>
+</div>

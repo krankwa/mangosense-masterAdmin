@@ -1,0 +1,524 @@
+<div class="min-h-screen bg-gradient-to-br from-green-50 via-white to-orange-50 p-6">
+  
+  <!-- Header -->
+  <div class="mb-8">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center space-x-4">
+        <button (click)="navigateBack()" 
+                class="bg-white p-2 rounded-lg shadow hover:shadow-md transition-shadow">
+          <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+          </svg>
+        </button>
+        <div>
+          <h1 class="text-3xl font-bold text-gray-800">Image Details</h1>
+          <p class="text-gray-600" *ngIf="imageData">{{ imageData.original_filename }}</p>
+        </div>
+      </div>
+      
+      <!-- Action Buttons -->
+      <div class="flex items-center space-x-4" *ngIf="imageData">
+        <button *ngIf="!imageData.is_verified" 
+                (click)="updateVerificationStatus(true)"
+                [disabled]="updating"
+                class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400">
+          <span *ngIf="!updating">✓ Verify Image</span>
+          <span *ngIf="updating" class="flex items-center">
+            <svg class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Verifying...
+          </span>
+        </button>
+        
+        <button *ngIf="imageData.is_verified" 
+                (click)="updateVerificationStatus(false)"
+                [disabled]="updating"
+                class="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors disabled:bg-gray-400">
+          <span *ngIf="!updating">⚠ Unverify</span>
+          <span *ngIf="updating" class="flex items-center">
+            <svg class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Updating...
+          </span>
+        </button>
+        
+        <button (click)="deleteImage()"
+                [disabled]="updating"
+                class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors disabled:bg-gray-400">
+          🗑 Delete
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="text-center py-12">
+    <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-green-600 mx-auto"></div>
+    <p class="mt-4 text-gray-600">Loading image details...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="text-center py-12">
+    <div class="text-red-500 text-xl mb-4">⚠️</div>
+    <p class="text-gray-600 mb-4">{{ error }}</p>
+    <button (click)="loadImageDetails()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+      Retry
+    </button>
+  </div>
+
+  <!-- Main Content -->
+  <div *ngIf="!loading && !error && imageData" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    
+    <!-- Image Panel -->
+    <div class="lg:col-span-1">
+      <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+        <div class="relative">
+          <img [src]="getImageUrl()" 
+               [alt]="imageData.original_filename" 
+               class="w-full h-80 object-cover cursor-pointer"
+               (click)="toggleFullImage()"
+               (error)="onImageError($event)"
+               (load)="onImageLoad($event)"
+               [title]="'Click to view full size'">
+          
+          <!-- Image Error Fallback -->
+          <div *ngIf="imageError" class="w-full h-80 bg-gray-200 flex items-center justify-center">
+            <div class="text-center text-gray-500">
+              <svg class="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+              </svg>
+              <p class="text-sm">Image failed to load</p>
+              <p class="text-xs mt-1">URL: {{ getImageUrl() }}</p>
+            </div>
+          </div>
+          
+          <!-- Verification Badge -->
+          <div class="absolute top-4 right-4">
+            <span *ngIf="imageData.is_verified" class="bg-green-500 text-white px-3 py-1 rounded-full text-sm">
+              ✓ Verified
+            </span>
+            <span *ngIf="!imageData.is_verified" class="bg-yellow-500 text-white px-3 py-1 rounded-full text-sm">
+              ⚠ Unverified
+            </span>
+          </div>
+          
+          <!-- Full Size Button -->
+          <button (click)="toggleFullImage()" 
+                  class="absolute bottom-4 right-4 bg-black bg-opacity-70 text-white px-3 py-1 rounded-lg text-sm hover:bg-opacity-90 transition-all">
+            🔍 Full Size
+          </button>
+        </div>
+        
+        <!-- Image Info -->
+        <div class="p-6">
+          <h3 class="text-xl font-bold text-gray-800 mb-4">{{ imageData.disease_classification || imageData.predicted_class }}</h3>
+          
+          <div class="space-y-3">
+            <div class="flex justify-between">
+              <span class="text-gray-600">Confidence:</span>
+              <span class="font-medium" [ngClass]="getConfidenceColor(imageData.confidence_score * 100)">
+                {{ (imageData.confidence_score * 100).toFixed(1) }}%
+              </span>
+            </div>
+            
+            <div class="flex justify-between">
+              <span class="text-gray-600">Type:</span>
+              <span class="font-medium capitalize">{{ getDiseaseType() }}</span>
+            </div>
+            
+            <div class="flex justify-between">
+              <span class="text-gray-600">File Size:</span>
+              <span class="font-medium">{{ formatFileSize(imageData.image_size) }}</span>
+            </div>
+            
+            <div class="flex justify-between">
+              <span class="text-gray-600">Uploaded:</span>
+              <span class="font-medium">{{ formatDateTime(imageData.uploaded_at) }}</span>
+            </div>
+            
+            <div *ngIf="imageData.verified_date" class="flex justify-between">
+              <span class="text-gray-600">Verified:</span>
+              <span class="font-medium">{{ formatDateTime(imageData.verified_date) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Details Panel -->
+    <div class="lg:col-span-2">
+      
+      <!-- Tab Navigation -->
+      <div class="bg-white rounded-t-xl shadow-lg">
+        <div class="flex border-b border-gray-200">
+          <button (click)="setActiveTab('overview')" 
+                  [class.border-green-500]="activeTab === 'overview'"
+                  [class.text-green-600]="activeTab === 'overview'"
+                  [class.border-transparent]="activeTab !== 'overview'"
+                  [class.text-gray-600]="activeTab !== 'overview'"
+                  class="px-6 py-3 border-b-2 font-medium text-sm hover:text-green-600 transition-colors">
+            📋 Overview
+          </button>
+          <button (click)="setActiveTab('prediction')" 
+                  [class.border-green-500]="activeTab === 'prediction'"
+                  [class.text-green-600]="activeTab === 'prediction'"
+                  [class.border-transparent]="activeTab !== 'prediction'"
+                  [class.text-gray-600]="activeTab !== 'prediction'"
+                  class="px-6 py-3 border-b-2 font-medium text-sm hover:text-green-600 transition-colors">
+            🧠 Prediction Details
+          </button>
+          <button (click)="setActiveTab('technical')" 
+                  [class.border-green-500]="activeTab === 'technical'"
+                  [class.text-green-600]="activeTab === 'technical'"
+                  [class.border-transparent]="activeTab !== 'technical'"
+                  [class.text-gray-600]="activeTab !== 'technical'"
+                  class="px-6 py-3 border-b-2 font-medium text-sm hover:text-green-600 transition-colors">
+            ⚙️ Technical
+          </button>
+          <button (click)="setActiveTab('feedback')" 
+                  [class.border-green-500]="activeTab === 'feedback'"
+                  [class.text-green-600]="activeTab === 'feedback'"
+                  [class.border-transparent]="activeTab !== 'feedback'"
+                  [class.text-gray-600]="activeTab !== 'feedback'"
+                  class="px-6 py-3 border-b-2 font-medium text-sm hover:text-green-600 transition-colors">
+            💬 User Feedback
+          </button>
+        </div>
+      </div>
+      
+      <!-- Tab Content -->
+      <div class="bg-white rounded-b-xl shadow-lg p-6">
+        
+        <!-- Overview Tab -->
+        <div *ngIf="activeTab === 'overview'" class="space-y-6">
+          <div>
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">📋 Image Overview</h3>
+            
+            <div class="grid grid-cols-2 gap-4">
+              <div class="bg-gray-50 p-4 rounded-lg">
+                <div class="text-sm text-gray-600 mb-1">File Name</div>
+                <div class="font-medium">{{ imageData.original_filename }}</div>
+              </div>
+              
+              <div class="bg-gray-50 p-4 rounded-lg">
+                <div class="text-sm text-gray-600 mb-1">Image ID</div>
+                <div class="font-medium">#{{ imageData.id }}</div>
+              </div>
+              
+              <div class="bg-gray-50 p-4 rounded-lg">
+                <div class="text-sm text-gray-600 mb-1">Disease Classification</div>
+                <div class="font-medium">{{ imageData.disease_classification || imageData.predicted_class }}</div>
+              </div>
+              
+              <div class="bg-gray-50 p-4 rounded-lg">
+                <div class="text-sm text-gray-600 mb-1">Detection Type</div>
+                <div class="font-medium capitalize">{{ getDiseaseType() }}</div>
+              </div>
+              
+              <div class="bg-gray-50 p-4 rounded-lg">
+                <div class="text-sm text-gray-600 mb-1">Upload Date</div>
+                <div class="font-medium">{{ formatDateTime(imageData.uploaded_at) }}</div>
+              </div>
+              
+              <div class="bg-gray-50 p-4 rounded-lg">
+                <div class="text-sm text-gray-600 mb-1">Verification Status</div>
+                <div class="font-medium">
+                  <span *ngIf="imageData.is_verified" class="text-green-600">✓ Verified</span>
+                  <span *ngIf="!imageData.is_verified" class="text-yellow-600">⚠ Unverified</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Notes Section -->
+          <div *ngIf="imageData.notes">
+            <h4 class="text-md font-semibold text-gray-800 mb-2">📝 Notes</h4>
+            <div class="bg-blue-50 p-4 rounded-lg">
+              <p class="text-gray-700">{{ imageData.notes }}</p>
+            </div>
+          </div>
+          
+          <!-- User Information -->
+          <div *ngIf="imageData.user">
+            <h4 class="text-md font-semibold text-gray-800 mb-2">👤 Uploaded By</h4>
+            <div class="bg-gray-50 p-4 rounded-lg">
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <div class="text-sm text-gray-600">Username</div>
+                  <div class="font-medium">{{ imageData.user.username }}</div>
+                </div>
+                <div>
+                  <div class="text-sm text-gray-600">Email</div>
+                  <div class="font-medium">{{ imageData.user.email }}</div>
+                </div>
+                <div>
+                  <div class="text-sm text-gray-600">Full Name</div>
+                  <div class="font-medium">{{ imageData.user.first_name }} {{ imageData.user.last_name }}</div>
+                </div>
+                <div>
+                  <div class="text-sm text-gray-600">Member Since</div>
+                  <div class="font-medium">{{ formatDateTime(imageData.user.date_joined) }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Prediction Details Tab -->
+        <div *ngIf="activeTab === 'prediction'" class="space-y-6">
+          <div *ngIf="predictionData">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">🧠 AI Prediction Analysis</h3>
+            
+            <!-- Primary Prediction -->
+            <div class="mb-6">
+              <h4 class="text-md font-semibold text-gray-800 mb-3">🎯 Primary Prediction</h4>
+              <div class="bg-gradient-to-r from-green-50 to-green-100 p-6 rounded-lg border border-green-200">
+                <div class="flex items-center justify-between mb-4">
+                  <div>
+                    <h5 class="text-xl font-bold text-gray-800">{{ predictionData.data.primary_prediction.disease }}</h5>
+                    <p class="text-gray-600">{{ predictionData.data.primary_prediction.detection_type | titlecase }} Detection</p>
+                  </div>
+                  <div class="text-right">
+                    <div class="text-3xl font-bold" [ngClass]="getConfidenceColor(predictionData.data.primary_prediction.confidence_score)">
+                      {{ predictionData.data.primary_prediction.confidence_score.toFixed(1) }}%
+                    </div>
+                    <div class="text-sm" [ngClass]="getConfidenceColor(predictionData.data.primary_prediction.confidence_score)">
+                      {{ predictionData.data.primary_prediction.confidence_level }} Confidence
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="bg-white p-4 rounded-lg">
+                  <h6 class="font-semibold text-gray-800 mb-2">💡 Treatment Recommendation</h6>
+                  <p class="text-gray-700">{{ predictionData.data.primary_prediction.treatment }}</p>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Top 3 Predictions -->
+            <div class="mb-6">
+              <h4 class="text-md font-semibold text-gray-800 mb-3">📊 Alternative Predictions</h4>
+              <div class="space-y-3">
+                <div *ngFor="let prediction of predictionData.data.top_3_predictions; let i = index" 
+                     class="bg-gray-50 p-4 rounded-lg border" 
+                     [class.border-green-300]="i === 0"
+                     [class.bg-green-50]="i === 0">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <h6 class="font-semibold text-gray-800">{{ prediction.disease }}</h6>
+                      <p class="text-sm text-gray-600">{{ prediction.detection_type | titlecase }}</p>
+                    </div>
+                    <div class="text-right">
+                      <div class="font-bold" [ngClass]="getConfidenceColor(prediction.confidence_score)">
+                        {{ prediction.confidence_score.toFixed(1) }}%
+                      </div>
+                      <div class="text-xs text-gray-500">{{ prediction.confidence_level }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Prediction Summary -->
+            <div>
+              <h4 class="text-md font-semibold text-gray-800 mb-3">📈 Analysis Summary</h4>
+              <div class="bg-blue-50 p-4 rounded-lg">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div class="text-center">
+                    <div class="text-2xl font-bold text-blue-600">{{ predictionData.data.prediction_summary.most_likely_disease }}</div>
+                    <div class="text-sm text-gray-600">Most Likely Disease</div>
+                  </div>
+                  <div class="text-center">
+                    <div class="text-2xl font-bold text-blue-600">{{ predictionData.data.prediction_summary.confidence_level }}</div>
+                    <div class="text-sm text-gray-600">Overall Confidence</div>
+                  </div>
+                  <div class="text-center">
+                    <div class="text-2xl font-bold text-blue-600">{{ predictionData.data.prediction_summary.total_diseases_checked }}</div>
+                    <div class="text-sm text-gray-600">Diseases Analyzed</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div *ngIf="!predictionData" class="text-center py-8">
+            <div class="text-gray-400 text-4xl mb-4">🧠</div>
+            <p class="text-gray-600">No detailed prediction data available</p>
+          </div>
+        </div>
+        
+        <!-- Technical Tab -->
+        <div *ngIf="activeTab === 'technical'" class="space-y-6">
+          <div>
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">⚙️ Technical Information</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="bg-gray-50 p-4 rounded-lg">
+                <div class="text-sm text-gray-600 mb-1">Image ID</div>
+                <div class="font-mono text-sm">{{ imageData.id }}</div>
+              </div>
+              
+              <div class="bg-gray-50 p-4 rounded-lg">
+                <div class="text-sm text-gray-600 mb-1">Processing Time</div>
+                <div class="font-mono text-sm">{{ imageData.processing_time ? (imageData.processing_time + 's') : 'N/A' }}</div>
+              </div>
+              
+              <div class="bg-gray-50 p-4 rounded-lg">
+                <div class="text-sm text-gray-600 mb-1">Image Size</div>
+                <div class="font-mono text-sm">{{ formatFileSize(imageData.image_size) }}</div>
+              </div>
+              
+              <div class="bg-gray-50 p-4 rounded-lg">
+                <div class="text-sm text-gray-600 mb-1">Client IP</div>
+                <div class="font-mono text-sm">{{ imageData.client_ip || 'N/A' }}</div>
+              </div>
+            </div>
+            
+            <!-- Model Information -->
+            <div *ngIf="predictionData" class="mt-6">
+              <h4 class="text-md font-semibold text-gray-800 mb-3">🤖 Model Information</h4>
+              <div class="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <div class="text-sm text-gray-600 mb-1">Model Used</div>
+                    <div class="font-mono text-sm">{{ predictionData.data.model_used }}-efficientnetb0</div>
+                  </div>
+                  
+                  <div>
+                    <div class="text-sm text-gray-600 mb-1">Model Path</div>
+                    <div class="font-mono text-xs">{{ predictionData.data.model_path || 'N/A' }}</div>
+                  </div>
+                  
+                  <div>
+                    <div class="text-sm text-gray-600 mb-1">Model Status</div>
+                    <div class="font-mono text-sm">
+                      <span class="text-green-600">✓ Loaded</span>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div class="text-sm text-gray-600 mb-1">Processed Size</div>
+                    <div class="font-mono text-sm">{{ predictionData.data.debug_info.processed_size }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Image URL Debug -->
+            <div class="mt-6">
+              <h4 class="text-md font-semibold text-gray-800 mb-3">🔗 Image URL Information</h4>
+              <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                <div class="space-y-2">
+                  <div>
+                    <div class="text-sm text-gray-600">Current URL</div>
+                    <div class="font-mono text-xs break-all">{{ getImageUrl() }}</div>
+                  </div>
+                  <div>
+                    <div class="text-sm text-gray-600">Original Path</div>
+                    <div class="font-mono text-xs break-all">{{ imageData.image }}</div>
+                  </div>
+                  <div *ngIf="imageData.image_url">
+                    <div class="text-sm text-gray-600">Processed URL</div>
+                    <div class="font-mono text-xs break-all">{{ imageData.image_url }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Feedback Tab -->
+        <div *ngIf="activeTab === 'feedback'" class="space-y-6">
+          <div>
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">💬 User Feedback</h3>
+            
+            <div *ngIf="userConfirmation" class="space-y-4">
+              <!-- Confirmation Status -->
+              <div class="bg-gray-50 p-4 rounded-lg">
+                <div class="flex items-center justify-between mb-3">
+                  <h4 class="text-md font-medium text-gray-800">Prediction Verification</h4>
+                  <span class="inline-flex px-3 py-1 text-sm font-semibold rounded-full"
+                        [class.bg-green-100]="userConfirmation.is_correct"
+                        [class.text-green-800]="userConfirmation.is_correct"
+                        [class.bg-red-100]="!userConfirmation.is_correct"
+                        [class.text-red-800]="!userConfirmation.is_correct">
+                    {{ userConfirmation.is_correct ? '✓ Correct' : '✗ Incorrect' }}
+                  </span>
+                </div>
+                
+                <div class="space-y-2 text-sm">
+                  <div>
+                    <span class="text-gray-600">Predicted Disease:</span>
+                    <span class="font-medium ml-2">{{ userConfirmation.predicted_disease }}</span>
+                  </div>
+                  <div>
+                    <span class="text-gray-600">Verified On:</span>
+                    <span class="font-medium ml-2">{{ (userConfirmation.confirmed_at || userConfirmation.created_at) | date:'medium' }}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- User Comments -->
+              <div *ngIf="userConfirmation.user_feedback" class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <h4 class="text-md font-medium text-blue-800 mb-3">
+                  <i class="fas fa-comment mr-2"></i>User Comments
+                </h4>
+                <div class="text-sm text-blue-900 leading-relaxed">
+                  "{{ userConfirmation.user_feedback }}"
+                </div>
+              </div>
+              
+              <!-- Location Information -->
+              <div *ngIf="userConfirmation.location_consent && (userConfirmation.latitude || userConfirmation.address)" 
+                   class="bg-green-50 p-4 rounded-lg border border-green-200">
+                <h4 class="text-md font-medium text-green-800 mb-3">
+                  <i class="fas fa-map-marker-alt mr-2"></i>Location Data
+                </h4>
+                <div class="space-y-2 text-sm text-green-900">
+                  <div *ngIf="userConfirmation.address">
+                    <span class="text-green-600">Address:</span>
+                    <span class="font-medium ml-2">{{ userConfirmation.address }}</span>
+                  </div>
+                  <div *ngIf="userConfirmation.latitude && userConfirmation.longitude">
+                    <span class="text-green-600">Coordinates:</span>
+                    <span class="font-medium ml-2">{{ userConfirmation.latitude }}, {{ userConfirmation.longitude }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- No Feedback Available -->
+            <div *ngIf="!userConfirmation" class="text-center py-8">
+              <div class="text-gray-400 text-4xl mb-4">💭</div>
+              <h4 class="text-lg font-medium text-gray-600 mb-2">No User Feedback Available</h4>
+              <p class="text-gray-500">This image hasn't been verified by users yet, or the verification data is not available.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Full Image Modal -->
+  <div *ngIf="showFullImage" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90 p-4">
+    <div class="relative max-w-full max-h-full">
+      <img [src]="getImageUrl()" 
+           [alt]="imageData?.original_filename" 
+           class="max-w-full max-h-full object-contain">
+      
+      <button (click)="toggleFullImage()" 
+              class="absolute top-4 right-4 bg-white text-black p-2 rounded-full hover:bg-gray-200 transition-colors">
+        ✕
+      </button>
+      
+      <div class="absolute bottom-4 left-4 bg-black bg-opacity-70 text-white p-3 rounded-lg">
+        <div class="font-semibold">{{ imageData?.original_filename }}</div>
+        <div class="text-sm">{{ imageData?.disease_classification || imageData?.predicted_class }}</div>
+      </div>
+    </div>
+  </div>
+</div>

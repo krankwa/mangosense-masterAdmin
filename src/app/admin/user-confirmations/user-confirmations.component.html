@@ -1,0 +1,440 @@
+<div class="user-confirmations-container">
+  <!-- Header -->
+  <div class="flex justify-between items-center mb-6">
+    <div>
+      <h1 class="text-3xl font-bold text-gray-900">User Confirmations</h1>
+      <p class="text-gray-600">Manage and analyze user feedback on disease predictions</p>
+    </div>
+    <div class="flex space-x-3">
+      <button 
+        (click)="refresh()"
+        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+        <i class="fas fa-sync-alt mr-2"></i>Refresh
+      </button>
+      <button 
+        (click)="exportConfirmations()"
+        [disabled]="exportingAll || loading"
+        class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400">
+        <i class="fas fa-download mr-2"></i>
+        {{ exportingAll ? 'Exporting...' : 'Export All' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="flex justify-center items-center py-12">
+    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+    <span class="ml-3 text-gray-600">Loading confirmations...</span>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error && !loading" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+    <div class="flex">
+      <i class="fas fa-exclamation-triangle text-red-400 mr-2 mt-1"></i>
+      <div>
+        <h3 class="text-red-800 font-medium">Error</h3>
+        <p class="text-red-700">{{ error }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div *ngIf="!loading && !error">
+    <!-- Statistics Cards -->
+    <div *ngIf="stats" class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center">
+          <div class="p-2 bg-blue-100 rounded-lg">
+            <i class="fas fa-comments text-blue-600 text-xl"></i>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-600">Total Confirmations</p>
+            <p class="text-2xl font-bold text-gray-900">{{ stats.total_confirmations | number }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center">
+          <div class="p-2 bg-green-100 rounded-lg">
+            <i class="fas fa-check-circle text-green-600 text-xl"></i>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-600">Correct Predictions</p>
+            <p class="text-2xl font-bold text-gray-900">{{ stats.correct_predictions | number }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center">
+          <div class="p-2 bg-yellow-100 rounded-lg">
+            <i class="fas fa-percentage text-yellow-600 text-xl"></i>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-600">Accuracy Rate</p>
+            <p class="text-2xl font-bold" [class]="getAccuracyClass(stats.accuracy_rate)">
+              {{ stats.accuracy_rate | number:'1.1-1' }}%
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center">
+          <div class="p-2 bg-purple-100 rounded-lg">
+            <i class="fas fa-map-marker-alt text-purple-600 text-xl"></i>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-600">With Location</p>
+            <p class="text-2xl font-bold text-gray-900">{{ stats.confirmations_with_location | number }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters and Controls -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+      <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
+        <!-- View Mode Toggle -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">View Mode</label>
+          <select 
+            [(ngModel)]="viewMode" 
+            (ngModelChange)="onViewModeChange()"
+            class="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+            <option value="grouped">Grouped by Disease</option>
+            <option value="list">List View</option>
+          </select>
+        </div>
+
+        <!-- Disease Filter -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Disease</label>
+          <select 
+            [(ngModel)]="selectedDisease" 
+            (ngModelChange)="onFilterChange()"
+            class="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+            <option value="all">All Diseases</option>
+            <option *ngFor="let disease of getUniqueDiseasesForFilter()" [value]="disease">
+              {{ disease }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Correctness Filter -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Correctness</label>
+          <select 
+            [(ngModel)]="selectedCorrectness" 
+            (ngModelChange)="onFilterChange()"
+            class="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+            <option value="all">All</option>
+            <option value="correct">Correct Only</option>
+            <option value="incorrect">Incorrect Only</option>
+          </select>
+        </div>
+
+        <!-- Date Range Filter -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Date Range</label>
+          <select 
+            [(ngModel)]="dateRange" 
+            (ngModelChange)="onFilterChange()"
+            class="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+            <option value="all">All Time</option>
+            <option value="week">Last Week</option>
+            <option value="month">Last Month</option>
+            <option value="year">Last Year</option>
+          </select>
+        </div>
+
+        <!-- Sort By -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
+          <select 
+            [(ngModel)]="sortBy" 
+            (ngModelChange)="onSortChange()"
+            class="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+            <option value="disease">Disease Name</option>
+            <option value="accuracy">Accuracy</option>
+            <option value="total">Total Count</option>
+          </select>
+        </div>
+
+        <!-- Search -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Search</label>
+          <input 
+            type="text" 
+            [(ngModel)]="searchTerm"
+            placeholder="Search disease, feedback..."
+            class="w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+        </div>
+      </div>
+
+      <!-- Location Filter Checkbox -->
+      <div class="mt-4">
+        <label class="flex items-center">
+          <input 
+            type="checkbox" 
+            [(ngModel)]="showLocationOnly" 
+            (ngModelChange)="onFilterChange()"
+            class="mr-2 text-blue-600 focus:ring-blue-500">
+          <span class="text-sm text-gray-700">Show only confirmations with location data</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Grouped View -->
+    <div *ngIf="viewMode === 'grouped'" class="space-y-4">
+      <div *ngFor="let group of diseaseGroups" class="bg-white rounded-lg shadow">
+        <!-- Group Header -->
+        <div class="p-6 border-b border-gray-200 cursor-pointer" (click)="toggleGroup(group)">
+          <div class="flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+              <i class="fas" [class.fa-chevron-down]="group.expanded" [class.fa-chevron-right]="!group.expanded" 
+                 class="text-gray-400"></i>
+              <div>
+                <h3 class="text-lg font-semibold text-gray-900">{{ group.disease }}</h3>
+                <p class="text-sm text-gray-600">
+                  {{ group.totalCount }} confirmations • 
+                  <span [class]="getAccuracyClass(group.accuracy)">{{ group.accuracy | number:'1.1-1' }}% accuracy</span>
+                </p>
+              </div>
+            </div>
+            <div class="flex items-center space-x-4">
+              <div class="text-right">
+                <div class="text-sm text-gray-600">
+                  <span class="text-green-600">{{ group.correctCount }} correct</span> • 
+                  <span class="text-red-600">{{ group.incorrectCount }} incorrect</span>
+                </div>
+              </div>
+              <button 
+                (click)="exportConfirmations(group.disease); $event.stopPropagation()"
+                [disabled]="group.downloading"
+                class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors disabled:bg-gray-400">
+                <i class="fas fa-download mr-1"></i>
+                {{ group.downloading ? 'Exporting...' : 'Export' }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Group Content -->
+        <div *ngIf="group.expanded" class="p-6">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Correct Predictions -->
+            <div>
+              <h4 class="text-md font-medium text-green-600 mb-3">
+                <i class="fas fa-check-circle mr-2"></i>Correct Predictions ({{ group.correctCount }})
+              </h4>
+              <div class="space-y-3 max-h-96 overflow-y-auto">
+                <div *ngFor="let confirmation of group.correctConfirmations" 
+                     class="border border-green-200 rounded-lg p-4 bg-green-50">
+                  <div class="flex justify-between items-start">
+                    <div class="flex-1">
+                      <div class="text-sm text-gray-600">{{ formatDate(confirmation.created_at || confirmation.confirmed_at) }}</div>
+                      <div *ngIf="confirmation.user_feedback" class="mt-2 text-sm text-gray-700">
+                        <strong>Feedback:</strong> {{ confirmation.user_feedback }}
+                      </div>
+                      <div *ngIf="confirmation.address" class="mt-1 text-sm text-gray-600">
+                        <i class="fas fa-map-marker-alt mr-1"></i>{{ confirmation.address }}
+                      </div>
+                    </div>
+                    <div *ngIf="confirmation.image_data" class="ml-4 relative group">
+                      <img [src]="confirmation.image_data.image_url" 
+                           [alt]="confirmation.image_data.original_filename"
+                           class="w-16 h-16 object-cover rounded-lg border">
+                      <!-- Image Download Overlay -->
+                      <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all rounded-lg flex items-center justify-center">
+                        <button (click)="downloadImage(confirmation); $event.stopPropagation()" 
+                                class="opacity-0 group-hover:opacity-100 bg-green-600 text-white p-1 rounded-full hover:bg-green-700 transition-all">
+                          <i class="fas fa-download text-xs"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div *ngIf="group.correctConfirmations.length === 0" 
+                     class="text-sm text-gray-500 italic text-center py-4">
+                  No correct predictions yet
+                </div>
+              </div>
+            </div>
+
+            <!-- Incorrect Predictions -->
+            <div>
+              <h4 class="text-md font-medium text-red-600 mb-3">
+                <i class="fas fa-times-circle mr-2"></i>Incorrect Predictions ({{ group.incorrectCount }})
+              </h4>
+              <div class="space-y-3 max-h-96 overflow-y-auto">
+                <div *ngFor="let confirmation of group.incorrectConfirmations" 
+                     class="border border-red-200 rounded-lg p-4 bg-red-50">
+                  <div class="flex justify-between items-start">
+                    <div class="flex-1">
+                      <div class="text-sm text-gray-600">{{ formatDate(confirmation.created_at || confirmation.confirmed_at) }}</div>
+                      <div *ngIf="confirmation.user_feedback" class="mt-2 text-sm text-gray-700">
+                        <strong>Feedback:</strong> {{ confirmation.user_feedback }}
+                      </div>
+                      <div *ngIf="confirmation.address" class="mt-1 text-sm text-gray-600">
+                        <i class="fas fa-map-marker-alt mr-1"></i>{{ confirmation.address }}
+                      </div>
+                    </div>
+                    <div *ngIf="confirmation.image_data" class="ml-4 relative group">
+                      <img [src]="confirmation.image_data.image_url" 
+                           [alt]="confirmation.image_data.original_filename"
+                           class="w-16 h-16 object-cover rounded-lg border">
+                      <!-- Image Download Overlay -->
+                      <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all rounded-lg flex items-center justify-center">
+                        <button (click)="downloadImage(confirmation); $event.stopPropagation()" 
+                                class="opacity-0 group-hover:opacity-100 bg-green-600 text-white p-1 rounded-full hover:bg-green-700 transition-all">
+                          <i class="fas fa-download text-xs"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div *ngIf="group.incorrectConfirmations.length === 0" 
+                     class="text-sm text-gray-500 italic text-center py-4">
+                  No incorrect predictions yet
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- No Results -->
+      <div *ngIf="diseaseGroups.length === 0" class="bg-white rounded-lg shadow p-8 text-center">
+        <i class="fas fa-search text-gray-400 text-4xl mb-4"></i>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">No confirmations found</h3>
+        <p class="text-gray-600">Try adjusting your filters or check back later for user feedback.</p>
+      </div>
+    </div>
+
+    <!-- List View -->
+    <div *ngIf="viewMode === 'list'" class="bg-white rounded-lg shadow">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Disease
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Correct
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Feedback
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Location
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Date
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Image
+              </th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <tr *ngFor="let confirmation of getFilteredConfirmations()" 
+                class="hover:bg-gray-50">
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm font-medium text-gray-900">{{ confirmation.predicted_disease }}</div>
+                <div class="text-sm text-gray-500">ID: {{ confirmation.id }}</div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
+                      [class.bg-green-100]="confirmation.is_correct"
+                      [class.text-green-800]="confirmation.is_correct"
+                      [class.bg-red-100]="!confirmation.is_correct"
+                      [class.text-red-800]="!confirmation.is_correct">
+                  {{ confirmation.is_correct ? 'Correct' : 'Incorrect' }}
+                </span>
+              </td>
+              <td class="px-6 py-4">
+                <div class="text-sm text-gray-900 max-w-xs truncate" 
+                     [title]="confirmation.user_feedback">
+                  {{ confirmation.user_feedback || 'No feedback' }}
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div *ngIf="confirmation.address" class="text-sm text-gray-900">
+                  <i class="fas fa-map-marker-alt text-gray-400 mr-1"></i>
+                  {{ confirmation.address }}
+                </div>
+                <div *ngIf="!confirmation.address" class="text-sm text-gray-500">
+                  No location
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {{ formatDate(confirmation.created_at || confirmation.confirmed_at) }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div *ngIf="confirmation.image_data" class="flex items-center relative group">
+                  <img [src]="confirmation.image_data.image_url" 
+                       [alt]="confirmation.image_data.original_filename"
+                       class="w-10 h-10 object-cover rounded-lg border">
+                  <!-- Image Download Overlay -->
+                  <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all rounded-lg flex items-center justify-center">
+                    <button (click)="downloadImage(confirmation); $event.stopPropagation()" 
+                            class="opacity-0 group-hover:opacity-100 bg-green-600 text-white p-1 rounded-full hover:bg-green-700 transition-all">
+                      <i class="fas fa-download text-xs"></i>
+                    </button>
+                  </div>
+                </div>
+                <div *ngIf="!confirmation.image_data" class="text-sm text-gray-500">
+                  No image
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- No Results in List View -->
+      <div *ngIf="getFilteredConfirmations().length === 0" class="p-8 text-center">
+        <i class="fas fa-search text-gray-400 text-4xl mb-4"></i>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">No confirmations found</h3>
+        <p class="text-gray-600">Try adjusting your filters or check back later for user feedback.</p>
+      </div>
+    </div>
+
+    <!-- Pagination -->
+    <div *ngIf="getTotalPages() > 1" class="mt-6 flex justify-between items-center">
+      <div class="text-sm text-gray-700">
+        Showing {{ ((currentPage - 1) * pageSize) + 1 }} to 
+        {{ Math.min(currentPage * pageSize, totalCount) }} of {{ totalCount }} results
+      </div>
+      <div class="flex space-x-2">
+        <button 
+          (click)="onPageChange(currentPage - 1)"
+          [disabled]="currentPage === 1"
+          class="px-3 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400">
+          Previous
+        </button>
+        
+        <button 
+          *ngFor="let page of getPageNumbers()"
+          (click)="onPageChange(page)"
+          [class.bg-blue-600]="page === currentPage"
+          [class.text-white]="page === currentPage"
+          [class.bg-white]="page !== currentPage"
+          [class.text-gray-700]="page !== currentPage"
+          class="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50">
+          {{ page }}
+        </button>
+        
+        <button 
+          (click)="onPageChange(currentPage + 1)"
+          [disabled]="currentPage === getTotalPages()"
+          class="px-3 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:bg-gray-100 disabled:text-gray-400">
+          Next
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
