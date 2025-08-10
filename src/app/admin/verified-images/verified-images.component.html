@@ -1,0 +1,415 @@
+<div class="min-h-screen bg-gray-50 p-6">
+  <!-- Header -->
+  <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+    <div class="flex justify-between items-center mb-4">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">Image Gallery</h1>
+        <p class="text-gray-600 mt-1">
+          Browse and manage all disease classifications
+        </p>
+      </div>
+      <div class="flex items-center space-x-3">
+        <span class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+          <span *ngIf="!hasActiveFilters()">{{ totalAllCount }} Total</span>
+          <span *ngIf="hasActiveFilters()">{{ getFilteredTotals().total }} of {{ totalAllCount }} Total</span>
+        </span>
+        <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+          <span *ngIf="!hasActiveFilters()">{{ totalVerifiedCount }} Verified</span>
+          <span *ngIf="hasActiveFilters()">{{ getFilteredTotals().verified }} of {{ totalVerifiedCount }} Verified</span>
+        </span>
+        <span class="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">
+          <span *ngIf="!hasActiveFilters()">{{ totalUnverifiedCount }} Unverified</span>
+          <span *ngIf="hasActiveFilters()">{{ getFilteredTotals().unverified }} of {{ totalUnverifiedCount }} Unverified</span>
+        </span>
+        <button 
+          (click)="downloadAllVerifiedImages()"
+          [disabled]="downloadingAll || totalVerifiedCount === 0"
+          class="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg transition-colors">
+          <i class="fas fa-download mr-2" [class.animate-pulse]="downloadingAll"></i>
+          {{ downloadingAll ? 'Preparing...' : 'Download All' }}
+        </button>
+        <button 
+          (click)="loadAllImages()"
+          class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+          [disabled]="loading">
+          <i class="fas fa-sync-alt mr-2" [class.animate-spin]="loading"></i>
+          Refresh
+        </button>
+      </div>
+    </div>
+
+    <!-- Filters and Controls -->
+    <div class="flex flex-wrap gap-4 items-center justify-between">
+      <!-- Search and Filters -->
+      <div class="flex items-center space-x-4">
+        <div class="relative">
+          <input
+            type="text"
+            [(ngModel)]="searchTerm"
+            (input)="onFilterChange()"
+            placeholder="Search diseases..."
+            class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+        </div>
+
+        <select 
+          [(ngModel)]="filterType" 
+          (change)="onFilterChange()"
+          class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+          <option value="all">All Types</option>
+          <option value="leaf">🍃 Leaf Diseases</option>
+          <option value="fruit">🥭 Fruit Diseases</option>
+        </select>
+
+        <select 
+          [(ngModel)]="dateRange" 
+          (change)="onDateRangeChange()"
+          class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+          <option value="all">All Time</option>
+          <option value="week">Last Week</option>
+          <option value="month">Last Month</option>
+          <option value="year">Last Year</option>
+        </select>
+
+        <select 
+          [(ngModel)]="sortBy" 
+          (change)="onSortChange()"
+          class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+          <option value="disease">Sort by Disease</option>
+          <option value="count">Sort by Count</option>
+          <option value="date">Sort by Latest</option>
+        </select>
+
+        <!-- Clear Filters Button -->
+        <button
+          *ngIf="hasActiveFilters()"
+          (click)="clearAllFilters()"
+          class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300 rounded-lg transition-colors">
+          <i class="fas fa-times mr-2"></i>
+          Clear Filters
+        </button>
+      </div>
+
+      <!-- Selection Actions -->
+      <div class="flex items-center space-x-2">
+        <button
+          (click)="selectAllImages()"
+          class="text-blue-600 hover:text-blue-800 text-sm px-3 py-1 rounded hover:bg-blue-50">
+          Select All
+        </button>
+        <button
+          (click)="deselectAllImages()"
+          class="text-gray-600 hover:text-gray-800 text-sm px-3 py-1 rounded hover:bg-gray-50">
+          Clear Selection
+        </button>
+      </div>
+    </div>
+
+    <!-- Selection Actions Bar -->
+    <div *ngIf="selectedImages.size > 0" 
+         class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between">
+      <span class="text-blue-800 font-medium">{{ selectedImages.size }} images selected</span>
+      <div class="flex items-center space-x-3">
+        <button
+          (click)="verifySelectedImages()"
+          [disabled]="updatingSelected"
+          class="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg transition-colors">
+          <i class="fas fa-check mr-2" [class.animate-pulse]="updatingSelected"></i>
+          {{ updatingSelected ? 'Processing...' : 'Verify Selected' }}
+        </button>
+        <button
+          (click)="unverifySelectedImages()"
+          [disabled]="updatingSelected"
+          class="bg-orange-600 hover:bg-orange-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg transition-colors">
+          <i class="fas fa-times mr-2" [class.animate-pulse]="updatingSelected"></i>
+          {{ updatingSelected ? 'Processing...' : 'Unverify Selected' }}
+        </button>
+        <button
+          (click)="downloadSelectedImages()"
+          class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+          <i class="fas fa-download mr-2"></i>
+          Download Selected
+        </button>
+        <button
+          (click)="deleteSelectedImages()"
+          [disabled]="updatingSelected"
+          class="bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg transition-colors">
+          <i class="fas fa-trash mr-2" [class.animate-pulse]="updatingSelected"></i>
+          {{ updatingSelected ? 'Processing...' : 'Delete Selected' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="text-center py-12">
+    <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+    <p class="mt-4 text-gray-600">Loading verified images...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+    <div class="flex items-center">
+      <i class="fas fa-exclamation-triangle text-red-500 mr-3"></i>
+      <span class="text-red-700">{{ error }}</span>
+    </div>
+  </div>
+
+  <!-- Main Folders -->
+  <div *ngIf="!loading && !error" class="space-y-4">
+    <!-- Main Category Folders -->
+    <div 
+      *ngFor="let mainFolder of getFilteredMainFolders()" 
+      class="bg-white rounded-lg shadow-md overflow-hidden">
+      
+      <!-- Main Folder Header -->
+      <div 
+        class="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition-colors border-b"
+        [class.bg-blue-50]="mainFolder.expanded"
+        (click)="toggleMainFolder(mainFolder)">
+        <div class="flex items-center space-x-3">
+          <i 
+            class="fas transition-transform duration-200 text-blue-600"
+            [class.fa-folder]="!mainFolder.expanded"
+            [class.fa-folder-open]="mainFolder.expanded"></i>
+          
+          <span class="text-xl font-bold text-gray-900">{{ mainFolder.name }}</span>
+          
+          <span 
+            class="px-3 py-1 rounded-full text-sm font-medium"
+            [class.bg-blue-100]="mainFolder.type === 'all'"
+            [class.text-blue-800]="mainFolder.type === 'all'"
+            [class.bg-green-100]="mainFolder.type === 'verified'"
+            [class.text-green-800]="mainFolder.type === 'verified'"
+            [class.bg-yellow-100]="mainFolder.type === 'unverified'"
+            [class.text-yellow-800]="mainFolder.type === 'unverified'">
+            {{ mainFolder.count }} images
+          </span>
+        </div>
+
+        <div class="flex items-center space-x-2">
+          <button
+            *ngIf="mainFolder.type === 'verified'"
+            (click)="downloadAllVerifiedImages(); $event.stopPropagation()"
+            [disabled]="downloadingAll"
+            class="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-3 py-1 rounded text-sm transition-colors">
+            <i class="fas fa-download mr-1" [class.animate-pulse]="downloadingAll"></i>
+            {{ downloadingAll ? 'Preparing...' : 'Download All' }}
+          </button>
+          <i 
+            class="fas fa-chevron-down transition-transform duration-200"
+            [class.rotate-180]="mainFolder.expanded"></i>
+        </div>
+      </div>
+
+      <!-- Disease Sub-folders -->
+      <div *ngIf="mainFolder.expanded" class="bg-gray-50">
+        <div 
+          *ngFor="let folder of mainFolder.subFolders" 
+          class="bg-white rounded-lg shadow-sm overflow-hidden m-4 border">
+          
+          <!-- Sub-folder Header -->
+          <div 
+            class="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition-colors border-b"
+            (click)="toggleFolder(folder)">
+            <div class="flex items-center space-x-3">
+              <i 
+                class="fas transition-transform duration-200 ml-4"
+                [class.fa-folder]="!folder.expanded"
+                [class.fa-folder-open]="folder.expanded"></i>
+              
+              <span class="text-lg font-semibold text-gray-900">{{ folder.disease }}</span>
+              
+              <span 
+                class="text-xl"
+                [title]="folder.diseaseType === 'leaf' ? 'Leaf Disease' : 'Fruit Disease'">
+                {{ getDiseaseTypeIcon(folder.diseaseType) }}
+              </span>
+              
+              <span 
+                class="px-2 py-1 rounded-full text-sm"
+                [class.bg-green-100]="mainFolder.type === 'verified'"
+                [class.text-green-800]="mainFolder.type === 'verified'"
+                [class.bg-yellow-100]="mainFolder.type === 'unverified'"
+                [class.text-yellow-800]="mainFolder.type === 'unverified'"
+                [class.bg-blue-100]="mainFolder.type === 'all'"
+                [class.text-blue-800]="mainFolder.type === 'all'">
+                {{ folder.count }} images
+              </span>
+            </div>
+
+            <div class="flex items-center space-x-2">
+              <button
+                (click)="downloadFolderImages(folder); $event.stopPropagation()"
+                [disabled]="folder.downloading"
+                class="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-3 py-1 rounded text-sm transition-colors">
+                <i class="fas fa-download mr-1" [class.animate-pulse]="folder.downloading"></i>
+                {{ folder.downloading ? 'Preparing...' : 'Download' }}
+              </button>
+              <button
+                (click)="selectAllInFolder(folder); $event.stopPropagation()"
+                class="text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded">
+                Select All
+              </button>
+              <i 
+                class="fas fa-chevron-down transition-transform duration-200"
+                [class.rotate-180]="folder.expanded"></i>
+            </div>
+          </div>
+
+          <!-- Folder Content -->
+      <div 
+        *ngIf="folder.expanded"
+        class="p-4 bg-gray-50">
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <div 
+            *ngFor="let image of folder.images"
+            class="relative group">
+            
+            <!-- Selection Checkbox -->
+            <div class="absolute top-2 left-2 z-10">
+              <input
+                type="checkbox"
+                [checked]="selectedImages.has(image.id)"
+                (change)="toggleImageSelection(image.id)"
+                class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+            </div>
+
+            <!-- Verified Badge -->
+            <div class="absolute top-2 right-2 z-10">
+              <span 
+                *ngIf="image.is_verified"
+                class="bg-green-600 text-white px-2 py-1 rounded-full text-xs font-medium">
+                <i class="fas fa-check mr-1"></i>
+                Verified
+              </span>
+              <span 
+                *ngIf="!image.is_verified"
+                class="bg-yellow-600 text-white px-2 py-1 rounded-full text-xs font-medium">
+                <i class="fas fa-clock mr-1"></i>
+                Unverified
+              </span>
+            </div>
+
+            <!-- Image Card -->
+            <div 
+              class="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer overflow-hidden border-2"
+              [class.border-blue-500]="selectedImages.has(image.id)"
+              [class.border-gray-200]="!selectedImages.has(image.id)"
+              (click)="viewImageDetails(image.id)">
+              
+              <div class="aspect-square relative group">
+                <img 
+                  [src]="getImageUrl(image)"
+                  [alt]="image.original_filename"
+                  class="w-full h-full object-cover"
+                  loading="lazy">
+                
+                <!-- Image Overlay with Actions -->
+                <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all flex items-center justify-center">
+                  <button (click)="downloadImage(image); $event.stopPropagation()" 
+                          class="opacity-0 group-hover:opacity-100 bg-green-600 text-white p-2 rounded-full hover:bg-green-700 transition-all">
+                    <i class="fas fa-download"></i>
+                  </button>
+                </div>
+                
+                <!-- Confidence Badge -->
+                <div class="absolute bottom-2 left-2">
+                  <span 
+                    class="px-2 py-1 rounded text-xs font-medium text-white"
+                    [class.bg-green-600]="image.confidence_score >= 80"
+                    [class.bg-yellow-600]="image.confidence_score >= 60 && image.confidence_score < 80"
+                    [class.bg-red-600]="image.confidence_score < 60">
+                    {{ image.confidence_score }}%
+                  </span>
+                </div>
+              </div>
+
+              <!-- Image Info -->
+              <div class="p-3">
+                <p class="text-sm font-medium text-gray-900 truncate" 
+                   [title]="image.original_filename">
+                  {{ image.original_filename }}
+                </p>
+                <p class="text-xs text-gray-500 mt-1">
+                  {{ formatDate(image.uploaded_at) }}
+                </p>
+                <p class="text-xs mt-1" 
+                   [class]="getDiseaseTypeClass(getDiseaseType(image))">
+                  {{ getDiseaseTypeIcon(getDiseaseType(image)) }} {{ getDiseaseType(image) | titlecase }}
+                </p>
+                <div class="flex items-center mt-2">
+                  <i class="fas fa-check-circle text-green-500 text-xs mr-1"></i>
+                  <span class="text-xs text-green-600">Verified</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Folder Actions -->
+        <div class="mt-4 pt-4 border-t border-gray-200 flex justify-between items-center">
+          <span class="text-sm text-gray-600">
+            {{ folder.images.length }} verified images in this folder
+          </span>
+          <div class="flex space-x-2">
+            <button
+              (click)="selectAllInFolder(folder)"
+              class="text-blue-600 hover:text-blue-800 text-sm px-3 py-1 rounded hover:bg-blue-50">
+              <i class="fas fa-check-square mr-1"></i>
+              Select All
+            </button>
+            <button
+              (click)="downloadFolderImages(folder)"
+              [disabled]="folder.downloading"
+              class="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white text-sm px-3 py-1 rounded transition-colors">
+              <i class="fas fa-download mr-1" [class.animate-pulse]="folder.downloading"></i>
+              {{ folder.downloading ? 'Preparing...' : 'Download Folder' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Download Progress -->
+        <div *ngIf="folder.downloading" class="mt-2">
+          <div class="bg-blue-100 rounded-full h-2">
+            <div class="bg-blue-600 h-2 rounded-full animate-pulse" style="width: 100%"></div>
+          </div>
+          <p class="text-xs text-blue-600 mt-1">{{ getDownloadProgress(folder) }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!loading && !error && mainFolders.length === 0" 
+       class="text-center py-12 bg-white rounded-lg shadow-md">
+    <i class="fas fa-folder-open text-gray-400 text-6xl mb-4"></i>
+    <h3 class="text-xl font-semibold text-gray-900 mb-2">No Images Found</h3>
+    <p class="text-gray-600 mb-4">
+      No images have been uploaded yet or no images match your current filters.
+    </p>
+    <button
+      (click)="loadAllImages()"
+      class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+      <i class="fas fa-refresh mr-2"></i>
+      Refresh Data
+    </button>
+  </div>
+
+  <!-- Download All Progress -->
+  <div *ngIf="downloadingAll" 
+       class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+      <div class="text-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">Preparing Download</h3>
+        <p class="text-gray-600">
+          Creating ZIP file with all verified images...
+        </p>
+        <div class="mt-4 bg-blue-100 rounded-full h-2">
+          <div class="bg-blue-600 h-2 rounded-full animate-pulse" style="width: 100%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -34,9 +34,7 @@ export class AuthService {
   constructor(
     private http: HttpClient,
     @Inject(PLATFORM_ID) private platformId: Object
-  ) {
-    console.log('🔧 AuthService initialized with API URL:', this.apiUrl);
-  }
+  ) {}
 
   login(credentials: LoginRequest): Observable<LoginResponse> {
     const loginUrl = `${this.apiUrl}/auth/login/`;
@@ -44,29 +42,17 @@ export class AuthService {
       'Content-Type': 'application/json'
     });
 
-    console.log('🚀 Making login request to:', loginUrl);
-    console.log('👤 With credentials:', { username: credentials.username, password: '***' });
-
     return this.http.post<LoginResponse>(loginUrl, credentials, { headers })
       .pipe(
         tap(response => {
-          console.log('✅ Login response:', response);
           if (response.success && response.access) {
             this.setToken(response.access);
             this.setRefreshToken(response.refresh);
             this.isAuthenticatedSubject.next(true);
-            console.log('🔑 Tokens stored successfully');
           }
         }),
         catchError((error: HttpErrorResponse) => {
-          console.error('🚨 Login error:', error);
-          console.error('Status:', error.status);
-          console.error('Message:', error.message);
-          
-          if (error.status === 0) {
-            console.error('🔌 Network error - Django server not reachable');
-          }
-          
+          console.error('Login error:', error);
           return throwError(() => error);
         })
       );
@@ -101,6 +87,12 @@ export class AuthService {
 
   isLoggedIn(): boolean {
     return this.hasToken();
+  }
+
+  // Method to refresh authentication state
+  refreshAuthState(): void {
+    const isAuth = this.hasToken();
+    this.isAuthenticatedSubject.next(isAuth);
   }
 
   private hasToken(): boolean {

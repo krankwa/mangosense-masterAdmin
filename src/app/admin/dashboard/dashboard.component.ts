@@ -231,19 +231,26 @@ export class DashboardComponent implements OnInit {
     }
   }
 
-  // Navigation methods
-  navigateToImageGallery(diseaseType?: string) {
-    this.router.navigate(['/admin/image-gallery'], { 
-      queryParams: diseaseType ? { disease: diseaseType } : {} 
-    });
-  }
-
+    // Navigation methods
   navigateToUploadImages() {
     this.router.navigate(['/admin/upload-images']);
   }
-
+  
+  navigateToImageGallery(filter?: string) {
+    if (filter) {
+      this.router.navigate(['/admin/verified-images'], { queryParams: { filter } });
+    } else {
+      this.router.navigate(['/admin/verified-images']);
+    }
+  }
+  
+  navigateToUserManagement() {
+    this.router.navigate(['/admin/user-management']);
+  }
+  
   navigateToModelSettings() {
-    this.router.navigate(['/admin/model-settings']);
+    // Navigate to model settings when available
+    console.log('Navigate to model settings');
   }
 
   async exportDataset() {

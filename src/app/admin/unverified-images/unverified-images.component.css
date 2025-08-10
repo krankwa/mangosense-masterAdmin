@@ -1,0 +1,128 @@
+/* Custom animations for folder expansion */
+.folder-content {
+  transition: max-height 0.3s ease-in-out;
+  overflow: hidden;
+}
+
+.folder-expanded {
+  max-height: 1000px;
+}
+
+.folder-collapsed {
+  max-height: 0;
+}
+
+/* Custom checkbox styling */
+input[type="checkbox"]:checked {
+  background-color: #3b82f6;
+  border-color: #3b82f6;
+}
+
+/* Image hover effects */
+.image-card {
+  transition: all 0.2s ease-in-out;
+}
+
+.image-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Selection highlight */
+.selected-image {
+  border: 2px solid #3b82f6;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+/* Disease type indicators */
+.disease-leaf {
+  border-left: 4px solid #10b981;
+}
+
+.disease-fruit {
+  border-left: 4px solid #f59e0b;
+}
+
+/* Confidence score styling */
+.confidence-high {
+  background-color: #10b981;
+}
+
+.confidence-medium {
+  background-color: #f59e0b;
+}
+
+.confidence-low {
+  background-color: #ef4444;
+}
+
+/* Bulk action bar */
+.bulk-actions {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 1rem;
+  margin: -1rem -1rem 1rem -1rem;
+}
+
+/* Loading spinner */
+.loading-spinner {
+  border: 3px solid #f3f4f6;
+  border-top: 3px solid #3b82f6;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive grid adjustments */
+@media (max-width: 768px) {
+  .grid-cols-6 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .grid-cols-6 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Filter section styling */
+.filters-section {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.filters-section select,
+.filters-section input {
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  color: #374151;
+}
+
+/* Folder header styling */
+.folder-header {
+  transition: background-color 0.2s ease;
+}
+
+.folder-header:hover {
+  background-color: #f9fafb;
+}
+
+/* Empty state styling */
+.empty-state {
+  padding: 4rem 2rem;
+  text-align: center;
+}
+
+.empty-state i {
+  opacity: 0.5;
+}
