@@ -12,47 +12,393 @@
         </button>
         <div>
           <h1 class="text-3xl font-bold text-gray-800">Model Settings</h1>
-          <p class="text-gray-600">Configure your machine learning model</p>
+          <p class="text-gray-600">Retrain your AI model with verified images from the database</p>
+        </div>
+      </div>
+      
+      <!-- Status and Refresh -->
+      <div class="flex items-center space-x-3">
+        <button (click)="refreshData()" 
+                [disabled]="loading"
+                class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400">
+          <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+          Refresh Data
+        </button>
+        <span class="px-3 py-1 rounded-full text-sm font-medium"
+              [ngClass]="{
+                'bg-green-100 text-green-800': modelStats.status === 'active',
+                'bg-blue-100 text-blue-800': modelStats.status === 'training',
+                'bg-yellow-100 text-yellow-800': modelStats.status === 'pending',
+                'bg-red-100 text-red-800': modelStats.status === 'error'
+              }">
+          {{ modelStats.status | titlecase }} {{ modelStats.version }}
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="bg-white rounded-xl shadow-lg p-12 mb-8">
+    <div class="text-center">
+      <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+      <h3 class="text-lg font-semibold text-gray-800 mb-2">Loading Training Data</h3>
+      <p class="text-gray-600">Fetching verified images from database...</p>
+    </div>
+  </div>
+
+  <!-- Error Alert -->
+  <div *ngIf="error" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+    <div class="flex items-center">
+      <svg class="w-5 h-5 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+      </svg>
+      <span class="text-red-800">{{ error }}</span>
+    </div>
+  </div>
+
+  <!-- Current Model Stats -->
+  <div *ngIf="!loading" class="bg-white rounded-xl shadow-lg p-8 mb-8">
+    <div class="text-center mb-8">
+      <div class="text-6xl mb-4">🤖</div>
+      <h2 class="text-2xl font-bold text-gray-800 mb-2">Current Model Performance</h2>
+      <p class="text-gray-600">Monitor your AI model's current statistics</p>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div class="bg-gradient-to-r from-green-50 to-green-100 rounded-lg p-6 text-center">
+        <div class="text-3xl mb-2">🎯</div>
+        <h3 class="font-semibold text-gray-800 mb-2">Model Accuracy</h3>
+        <p class="text-3xl font-bold text-green-600">{{ modelStats.accuracy.toFixed(1) }}%</p>
+      </div>
+      
+      <div class="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-6 text-center">
+        <div class="text-3xl mb-2">📊</div>
+        <h3 class="font-semibold text-gray-800 mb-2">Training Data</h3>
+        <p class="text-3xl font-bold text-blue-600">{{ modelStats.trainingDataCount.toLocaleString() }}</p>
+      </div>
+      
+      <div class="bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg p-6 text-center">
+        <div class="text-3xl mb-2">🔄</div>
+        <h3 class="font-semibold text-gray-800 mb-2">Last Updated</h3>
+        <p class="text-2xl font-bold text-purple-600">{{ modelStats.lastUpdated }}</p>
+      </div>
+      
+      <div class="bg-gradient-to-r from-orange-50 to-orange-100 rounded-lg p-6 text-center">
+        <div class="text-3xl mb-2">📈</div>
+        <h3 class="font-semibold text-gray-800 mb-2">Total Predictions</h3>
+        <p class="text-2xl font-bold text-orange-600">{{ modelStats.totalPredictions.toLocaleString() }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Training Data Sources -->
+  <div *ngIf="!loading" class="bg-white rounded-xl shadow-lg p-8 mb-8">
+    <div class="text-center mb-8">
+      <div class="text-6xl mb-4">🗂️</div>
+      <h2 class="text-2xl font-bold text-gray-800 mb-2">Available Training Data</h2>
+      <p class="text-gray-600">Images from your MangoSense database</p>
+    </div>
+
+    <!-- Data Overview -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div class="bg-gradient-to-r from-green-50 to-green-100 rounded-lg p-6 text-center">
+        <div class="text-3xl mb-2">✅</div>
+        <h3 class="font-semibold text-gray-800 mb-2">Verified Images</h3>
+        <p class="text-3xl font-bold text-green-600">{{ trainingDataSources.totalVerified.toLocaleString() }}</p>
+        <p class="text-sm text-gray-600 mt-2">Admin verified & safe for training</p>
+      </div>
+      
+      <div class="bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-lg p-6 text-center">
+        <div class="text-3xl mb-2">⏳</div>
+        <h3 class="font-semibold text-gray-800 mb-2">Unverified Images</h3>
+        <p class="text-3xl font-bold text-yellow-600">{{ trainingDataSources.totalUnverified.toLocaleString() }}</p>
+        <p class="text-sm text-gray-600 mt-2">Awaiting admin verification</p>
+      </div>
+      
+      <div class="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-6 text-center">
+        <div class="text-3xl mb-2">📊</div>
+        <h3 class="font-semibold text-gray-800 mb-2">Total Available</h3>
+        <p class="text-3xl font-bold text-blue-600">{{ getTotalAvailableImages().toLocaleString() }}</p>
+        <p class="text-sm text-gray-600 mt-2">Ready for model training</p>
+      </div>
+    </div>
+
+    <!-- Image Type Breakdown -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      <div class="bg-gray-50 rounded-lg p-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">By Image Type</h3>
+        <div class="space-y-3">
+          <div class="flex justify-between items-center">
+            <span class="flex items-center">
+              🍃 <span class="ml-2">Leaf Images</span>
+            </span>
+            <span class="font-bold text-green-600">{{ trainingDataSources.byImageType.leaf.toLocaleString() }}</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="flex items-center">
+              🥭 <span class="ml-2">Fruit Images</span>
+            </span>
+            <span class="font-bold text-orange-600">{{ trainingDataSources.byImageType.fruit.toLocaleString() }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-gray-50 rounded-lg p-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">Disease Distribution</h3>
+        <div class="space-y-2 max-h-40 overflow-y-auto">
+          <div *ngFor="let item of getImagesByDiseaseClass()" 
+               class="flex justify-between items-center text-sm">
+            <span class="text-gray-700">{{ item.disease }}</span>
+            <span class="font-medium">
+              {{ item.count }} ({{ item.percentage.toFixed(1) }}%)
+            </span>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Settings Section -->
-  <div class="bg-white rounded-xl shadow-lg p-8">
+  <!-- Training Progress (shown when retraining) -->
+  <div *ngIf="trainingProgress" class="bg-white rounded-xl shadow-lg p-8 mb-8">
+    <div class="text-center mb-6">
+      <div class="text-6xl mb-4">⚡</div>
+      <h2 class="text-2xl font-bold text-gray-800 mb-2">Model Retraining in Progress</h2>
+      <p class="text-gray-600">{{ trainingProgress.currentPhase }}</p>
+    </div>
+    
+    <!-- Progress Bar -->
+    <div class="mb-6">
+      <div class="flex justify-between text-sm text-gray-600 mb-2">
+        <span *ngIf="trainingProgress.status === 'training'">
+          Epoch {{ trainingProgress.currentEpoch }} of {{ trainingProgress.totalEpochs }}
+        </span>
+        <span *ngIf="trainingProgress.status !== 'training'">
+          {{ trainingProgress.currentPhase }}
+        </span>
+        <span>{{ trainingProgress.estimatedTimeRemaining }}</span>
+      </div>
+      <div class="w-full bg-gray-200 rounded-full h-3">
+        <div class="bg-gradient-to-r from-blue-500 to-green-500 h-3 rounded-full transition-all duration-500" 
+             [style.width.%]="trainingProgress.status === 'training' ? 
+               (trainingProgress.currentEpoch / trainingProgress.totalEpochs) * 100 : 
+               (trainingProgress.status === 'completed' ? 100 : 30)">
+        </div>
+      </div>
+    </div>
+    
+    <!-- Training Metrics -->
+    <div *ngIf="trainingProgress.status === 'training'" 
+         class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div class="bg-gray-50 rounded-lg p-4 text-center">
+        <h4 class="font-semibold text-gray-700">Current Loss</h4>
+        <p class="text-2xl font-bold text-red-600">{{ trainingProgress.currentLoss.toFixed(4) }}</p>
+      </div>
+      <div class="bg-gray-50 rounded-lg p-4 text-center">
+        <h4 class="font-semibold text-gray-700">Training Accuracy</h4>
+        <p class="text-2xl font-bold text-blue-600">{{ trainingProgress.currentAccuracy.toFixed(1) }}%</p>
+      </div>
+      <div class="bg-gray-50 rounded-lg p-4 text-center">
+        <h4 class="font-semibold text-gray-700">Validation Accuracy</h4>
+        <p class="text-2xl font-bold text-green-600">{{ trainingProgress.validationAccuracy.toFixed(1) }}%</p>
+      </div>
+      <div class="bg-gray-50 rounded-lg p-4 text-center">
+        <h4 class="font-semibold text-gray-700">Images Processed</h4>
+        <p class="text-lg font-bold text-purple-600">
+          {{ trainingProgress.processedImages.toLocaleString() }} / {{ trainingProgress.totalImages.toLocaleString() }}
+        </p>
+      </div>
+    </div>
+    
+    <!-- Stop Training Button -->
+    <div class="text-center">
+      <button (click)="stopRetraining()" 
+              class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors">
+        <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10l6 6m0-6l-6 6"></path>
+        </svg>
+        Stop Training
+      </button>
+    </div>
+  </div>
+
+  <!-- Retraining Configuration -->
+  <div *ngIf="!isRetraining && !loading" class="bg-white rounded-xl shadow-lg p-8 mb-8">
     <div class="text-center mb-8">
       <div class="text-6xl mb-4">⚙️</div>
-      <h2 class="text-2xl font-bold text-gray-800 mb-2">Model Configuration</h2>
-      <p class="text-gray-600">Manage your AI model settings and performance</p>
+      <h2 class="text-2xl font-bold text-gray-800 mb-2">Retraining Configuration</h2>
+      <p class="text-gray-600">Configure parameters for model retraining with database images</p>
     </div>
     
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div class="bg-gray-50 rounded-lg p-6 text-center">
-        <div class="text-3xl mb-2">🎯</div>
-        <h3 class="font-semibold text-gray-800 mb-2">Model Accuracy</h3>
-        <p class="text-2xl font-bold text-green-600">94.5%</p>
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+      <!-- Training Parameters -->
+      <div class="space-y-6">
+        <h3 class="text-lg font-semibold text-gray-800 border-b pb-2">Training Parameters</h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Epochs</label>
+            <input type="number" 
+                   [(ngModel)]="retrainingConfig.epochs" 
+                   (change)="onConfigChange()"
+                   min="10" max="200" 
+                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            <p class="text-xs text-gray-500 mt-1">Number of training iterations (10-200)</p>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Batch Size</label>
+            <select [(ngModel)]="retrainingConfig.batchSize" (change)="onConfigChange()"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              <option [value]="16">16 (Small GPU)</option>
+              <option [value]="32">32 (Recommended)</option>
+              <option [value]="64">64 (Large GPU)</option>
+              <option [value]="128">128 (Very Large GPU)</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Learning Rate</label>
+            <select [(ngModel)]="retrainingConfig.learningRate" (change)="onConfigChange()"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              <option [value]="0.0001">0.0001 (Very Conservative)</option>
+              <option [value]="0.001">0.001 (Recommended)</option>
+              <option [value]="0.01">0.01 (Aggressive)</option>
+              <option [value]="0.1">0.1 (Very Aggressive)</option>
+            </select>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Validation Split</label>
+            <input type="range" 
+                   [(ngModel)]="retrainingConfig.validationSplit" 
+                   (change)="onConfigChange()"
+                   min="0.1" max="0.3" step="0.05"
+                   class="w-full">
+            <div class="flex justify-between text-xs text-gray-500">
+              <span>10%</span>
+              <span class="font-medium">{{ (retrainingConfig.validationSplit * 100).toFixed(0) }}%</span>
+              <span>30%</span>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Min Images Per Disease Class</label>
+          <input type="number" 
+                 [(ngModel)]="retrainingConfig.minImagesPerClass" 
+                 (change)="onConfigChange()"
+                 min="5" max="100" 
+                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          <p class="text-xs text-gray-500 mt-1">Minimum images required per disease class</p>
+        </div>
       </div>
       
-      <div class="bg-gray-50 rounded-lg p-6 text-center">
-        <div class="text-3xl mb-2">📊</div>
-        <h3 class="font-semibold text-gray-800 mb-2">Training Data</h3>
-        <p class="text-2xl font-bold text-blue-600">1,500 images</p>
-      </div>
-      
-      <div class="bg-gray-50 rounded-lg p-6 text-center">
-        <div class="text-3xl mb-2">🔄</div>
-        <h3 class="font-semibold text-gray-800 mb-2">Last Updated</h3>
-        <p class="text-2xl font-bold text-purple-600">2 days ago</p>
+      <!-- Data Configuration -->
+      <div class="space-y-6">
+        <h3 class="text-lg font-semibold text-gray-800 border-b pb-2">Data Sources</h3>
+        
+        <div class="space-y-4">
+          <label class="flex items-start">
+            <input type="checkbox" 
+                   [(ngModel)]="retrainingConfig.includeUnverified"
+                   (change)="onConfigChange()"
+                   class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mt-1">
+            <div class="ml-3">
+              <span class="text-sm font-medium text-gray-700">Include unverified images</span>
+              <p class="text-xs text-gray-500">⚠️ May reduce model quality. Use with caution.</p>
+            </div>
+          </label>
+          
+          <label class="flex items-start">
+            <input type="checkbox" 
+                   [(ngModel)]="retrainingConfig.augmentData"
+                   (change)="onConfigChange()"
+                   class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mt-1">
+            <div class="ml-3">
+              <span class="text-sm font-medium text-gray-700">Use data augmentation</span>
+              <p class="text-xs text-gray-500">Applies rotation, flip, zoom to increase data variety</p>
+            </div>
+          </label>
+          
+          <label class="flex items-start">
+            <input type="checkbox" 
+                   [(ngModel)]="retrainingConfig.balanceClasses"
+                   (change)="onConfigChange()"
+                   class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mt-1">
+            <div class="ml-3">
+              <span class="text-sm font-medium text-gray-700">Balance disease classes</span>
+              <p class="text-xs text-gray-500">Ensures equal representation of all disease types</p>
+            </div>
+          </label>
+        </div>
+        
+        <!-- Training Summary -->
+        <div class="bg-blue-50 rounded-lg p-4">
+          <h4 class="font-semibold text-blue-800 mb-3 flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            Training Summary
+          </h4>
+          <div class="space-y-2 text-sm">
+            <div class="flex justify-between">
+              <span>Verified images:</span>
+              <span class="font-medium text-green-700">{{ trainingDataSources.totalVerified.toLocaleString() }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span>Unverified images:</span>
+              <span class="font-medium text-yellow-700">
+                {{ retrainingConfig.includeUnverified ? trainingDataSources.totalUnverified.toLocaleString() : '0 (excluded)' }}
+              </span>
+            </div>
+            <div class="flex justify-between border-t pt-2">
+              <span class="font-semibold">Total for training:</span>
+              <span class="font-bold text-blue-700">{{ getTotalAvailableImages().toLocaleString() }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span>Disease classes:</span>
+              <span class="font-medium">{{ getObjectKeys(trainingDataSources.byDiseaseType).length }}</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     
-    <div class="mt-8 text-center">
-      <button class="bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-700 transition-colors mr-4">
-        Retrain Model
+    <!-- Action Buttons -->
+    <div class="mt-8 text-center space-x-4">
+      <button (click)="startRetraining()" 
+              [disabled]="getTotalAvailableImages() < 100"
+              class="bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed">
+        <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+        </svg>
+        Start Retraining with {{ getTotalAvailableImages().toLocaleString() }} Images
       </button>
-      <button class="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors">
-        Export Model
+      
+      <button (click)="exportModel()" 
+              class="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors">
+        <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+        </svg>
+        Export Current Model
       </button>
+    </div>
+    
+    <!-- Validation Warning -->
+    <div *ngIf="getTotalAvailableImages() < 100" class="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+      <div class="flex items-center text-red-800">
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span class="font-medium">
+          Insufficient training data. Need at least 100 images, currently have {{ getTotalAvailableImages() }}.
+        </span>
+      </div>
     </div>
   </div>
 </div>
