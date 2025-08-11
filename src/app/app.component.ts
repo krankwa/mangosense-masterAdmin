@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { Router, NavigationEnd } from '@angular/router';
 import { AuthService } from './services/auth.service';
+import { NotificationService } from './services/notification.service';
 import { filter } from 'rxjs/operators';
 
 @Component({
@@ -14,10 +15,13 @@ export class AppComponent implements OnInit {
   isAuthenticated = false;
   showNavigation = false;
   isMenuOpen = false;
+  showNotificationPanel = false;
+  unreadNotificationCount = 0;
 
   constructor(
     private authService: AuthService,
-    private router: Router
+    private router: Router,
+    private notificationService: NotificationService
   ) {}
 
   ngOnInit() {
@@ -26,6 +30,13 @@ export class AppComponent implements OnInit {
       isAuth => {
         this.isAuthenticated = isAuth;
         this.updateNavigationVisibility();
+      }
+    );
+
+    // Subscribe to notification count
+    this.notificationService.unreadCount$.subscribe(
+      count => {
+        this.unreadNotificationCount = count;
       }
     );
 
@@ -75,10 +86,13 @@ export class AppComponent implements OnInit {
     this.isMenuOpen = false;
   }
 
-  exportDataset() {
-    // Add export dataset logic here
-    console.log('Export dataset functionality to be implemented');
+  navigateToNotifications() {
+    this.showNotificationPanel = true;
     this.isMenuOpen = false;
+  }
+
+  closeNotificationPanel() {
+    this.showNotificationPanel = false;
   }
 
   logout() {

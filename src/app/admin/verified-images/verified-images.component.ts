@@ -75,6 +75,13 @@ export class VerifiedImagesComponent implements OnInit {
       }).toPromise();
 
       if (response && response.images) {
+        console.log('API Response - First few images:', response.images.slice(0, 3).map(img => ({
+          id: img.id,
+          predicted_class: img.predicted_class,
+          model_used: img.model_used,
+          disease_type: img.disease_type
+        })));
+        
         this.totalAllCount = response.images.length;
         
         // Separate verified and unverified images
@@ -171,21 +178,36 @@ export class VerifiedImagesComponent implements OnInit {
 
     filteredImages.forEach(image => {
       const disease = image.predicted_class || 'Unknown';
-      if (!diseaseMap.has(disease)) {
-        diseaseMap.set(disease, []);
+      const diseaseType = this.getDiseaseType(image);
+      
+      // Create a unique key that combines disease name and type
+      const folderKey = `${disease}_${diseaseType}`;
+      
+      if (!diseaseMap.has(folderKey)) {
+        diseaseMap.set(folderKey, []);
       }
-      diseaseMap.get(disease)!.push(image);
+      diseaseMap.get(folderKey)!.push(image);
     });
 
-    const folders = Array.from(diseaseMap.entries()).map(([disease, imgs]) => ({
-      disease,
-      count: imgs.length,
-      images: imgs.sort((a, b) => new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime()),
-      expanded: false,
-      diseaseType: this.getDiseaseType(imgs[0]),
-      downloading: false,
-      verificationStatus
-    }));
+    const folders = Array.from(diseaseMap.entries()).map(([folderKey, imgs]) => {
+      const disease = imgs[0].predicted_class || 'Unknown';
+      const diseaseType = this.getDiseaseType(imgs[0]);
+      
+      // Create display name with type suffix for clarity
+      const displayName = diseaseType !== 'unknown' ? 
+        `${disease} (${diseaseType.charAt(0).toUpperCase() + diseaseType.slice(1)})` : 
+        disease;
+      
+      return {
+        disease: displayName,
+        count: imgs.length,
+        images: imgs.sort((a, b) => new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime()),
+        expanded: false,
+        diseaseType: diseaseType,
+        downloading: false,
+        verificationStatus
+      };
+    });
 
     // Sort folders
     folders.sort((a, b) => {
@@ -531,8 +553,27 @@ export class VerifiedImagesComponent implements OnInit {
   async downloadFolderImages(folder: VerifiedDiseaseFolder) {
     try {
       folder.downloading = true;
+      
+      // Check if there are unverified images in this folder
+      const unverifiedImages = folder.images.filter(img => !img.is_verified);
+      
+      if (unverifiedImages.length > 0) {
+        const confirmDownload = confirm(
+          `This folder contains ${unverifiedImages.length} unverified image(s). ` +
+          `These will be downloaded with "unverified" appended to their filenames. ` +
+          `Do you want to continue?`
+        );
+        
+        if (!confirmDownload) {
+          folder.downloading = false;
+          return; // User cancelled the download
+        }
+      }
+      
       const zip = new JSZip();
-      const diseaseFolder = zip.folder(folder.disease);
+      const diseaseType = folder.diseaseType;
+      const folderName = `${folder.disease} (${diseaseType})`;
+      const diseaseFolder = zip.folder(folderName);
 
       if (!diseaseFolder) {
         throw new Error('Failed to create folder in ZIP');
@@ -550,7 +591,14 @@ export class VerifiedImagesComponent implements OnInit {
           }
 
           const blob = await response.blob();
-          const filename = image.original_filename || `image_${image.id}.jpg`;
+          let filename = image.original_filename || `image_${image.id}.jpg`;
+          
+          // Append "unverified" to filename if image is not verified
+          if (!image.is_verified) {
+            const fileExtension = filename.substring(filename.lastIndexOf('.'));
+            const baseName = filename.substring(0, filename.lastIndexOf('.'));
+            filename = `${baseName}_unverified${fileExtension}`;
+          }
           
           diseaseFolder.file(filename, blob);
         } catch (error) {
@@ -561,7 +609,7 @@ export class VerifiedImagesComponent implements OnInit {
       // Generate and download ZIP
       const content = await zip.generateAsync({ type: 'blob' });
       const timestamp = new Date().toISOString().split('T')[0];
-      const zipFilename = `${folder.disease}_images_${timestamp}.zip`;
+      const zipFilename = `${folder.disease}_${diseaseType}_images_${timestamp}.zip`;
       
       saveAs(content, zipFilename);
       
@@ -578,21 +626,80 @@ export class VerifiedImagesComponent implements OnInit {
       this.downloadingAll = true;
       const zip = new JSZip();
 
-      // Create folders for each disease
-      for (const folder of this.getFilteredFolders()) {
-        const diseaseFolder = zip.folder(folder.disease);
-        
-        if (!diseaseFolder) continue;
+      // Get unique images from currently visible main folders to avoid duplicates
+      const uniqueImagesMap = new Map<number, MangoImage>();
+      this.getFilteredMainFolders().forEach(mainFolder => {
+        mainFolder.subFolders.forEach(subFolder => {
+          subFolder.images.forEach(image => {
+            uniqueImagesMap.set(image.id, image);
+          });
+        });
+      });
 
-        for (const image of folder.images) {
+      const allImages = Array.from(uniqueImagesMap.values());
+      console.log(`Processing ${allImages.length} unique images for download all`);
+
+      // Check if there are unverified images
+      const unverifiedImages = allImages.filter(img => !img.is_verified);
+      
+      if (unverifiedImages.length > 0) {
+        const confirmDownload = confirm(
+          `Your download includes ${unverifiedImages.length} unverified image(s). ` +
+          `These will be downloaded with "unverified" appended to their filenames. ` +
+          `Do you want to continue?`
+        );
+        
+        if (!confirmDownload) {
+          this.downloadingAll = false;
+          return; // User cancelled the download
+        }
+      }
+
+      // Group images by disease for folder structure
+      const diseaseMap = new Map<string, MangoImage[]>();
+      allImages.forEach(image => {
+        const disease = image.predicted_class || 'Unknown';
+        const diseaseType = this.getDiseaseType(image);
+        const folderName = `${disease} (${diseaseType})`;
+        
+        if (!diseaseMap.has(folderName)) {
+          diseaseMap.set(folderName, []);
+        }
+        diseaseMap.get(folderName)!.push(image);
+      });
+
+      console.log(`Grouped into ${diseaseMap.size} disease folders:`, Array.from(diseaseMap.keys()));
+
+      // Create folders for each disease with type
+      for (const [folderName, images] of diseaseMap.entries()) {
+        const diseaseFolder = zip.folder(folderName);
+        
+        if (!diseaseFolder) {
+          console.error(`Failed to create folder for disease: ${folderName}`);
+          continue;
+        }
+
+        console.log(`Processing ${images.length} images for disease: ${folderName}`);
+
+        for (const image of images) {
           try {
             const imageUrl = this.getImageUrl(image);
             const response = await fetch(imageUrl);
             
-            if (!response.ok) continue;
+            if (!response.ok) {
+              console.warn(`Failed to download image ${image.id}: ${response.statusText}`);
+              continue;
+            }
 
             const blob = await response.blob();
-            const filename = image.original_filename || `image_${image.id}.jpg`;
+            let filename = image.original_filename || `image_${image.id}.jpg`;
+            
+            // Append "unverified" to filename if image is not verified
+            if (!image.is_verified) {
+              const fileExtension = filename.substring(filename.lastIndexOf('.'));
+              const baseName = filename.substring(0, filename.lastIndexOf('.'));
+              filename = `${baseName}_unverified${fileExtension}`;
+            }
             
             diseaseFolder.file(filename, blob);
           } catch (error) {
@@ -602,10 +709,12 @@ export class VerifiedImagesComponent implements OnInit {
       }
 
       // Generate and download ZIP
+      console.log('Generating ZIP file...');
       const content = await zip.generateAsync({ type: 'blob' });
       const timestamp = new Date().toISOString().split('T')[0];
-      const zipFilename = `all_verified_images_${timestamp}.zip`;
+      const zipFilename = `all_images_${timestamp}.zip`;
       
+      console.log(`Saving ZIP file: ${zipFilename} (${content.size} bytes)`);
       saveAs(content, zipFilename);
       
     } catch (error) {
@@ -621,37 +730,103 @@ export class VerifiedImagesComponent implements OnInit {
 
     try {
       const zip = new JSZip();
-      const selectedFolder = zip.folder('selected_images');
 
-      if (!selectedFolder) {
-        throw new Error('Failed to create folder in ZIP');
+      // Get unique images from selected IDs to avoid duplicates
+      // Use a Map to ensure uniqueness by image ID
+      const uniqueImagesMap = new Map<number, MangoImage>();
+      
+      this.mainFolders.forEach(mainFolder => {
+        mainFolder.subFolders.forEach(subFolder => {
+          subFolder.images.forEach(image => {
+            if (this.selectedImages.has(image.id)) {
+              uniqueImagesMap.set(image.id, image);
+            }
+          });
+        });
+      });
+
+      const selectedImageData = Array.from(uniqueImagesMap.values());
+      
+      console.log(`Processing ${selectedImageData.length} unique selected images`);
+      
+      // Check if there are unverified images in the selection
+      const unverifiedImages = selectedImageData.filter(img => !img.is_verified);
+      
+      if (unverifiedImages.length > 0) {
+        const confirmDownload = confirm(
+          `Your selection includes ${unverifiedImages.length} unverified image(s). ` +
+          `These will be downloaded with "unverified" appended to their filenames. ` +
+          `Do you want to continue?`
+        );
+        
+        if (!confirmDownload) {
+          return; // User cancelled the download
+        }
       }
 
-      // Get selected images from all folders
-      const allImages = this.diseaseFolders.flatMap(folder => folder.images);
-      const selectedImageData = allImages.filter(img => this.selectedImages.has(img.id));
+      // Group images by disease for folder structure
+      const diseaseMap = new Map<string, MangoImage[]>();
+      selectedImageData.forEach(image => {
+        const disease = image.predicted_class || 'Unknown';
+        const diseaseType = this.getDiseaseType(image);
+        const folderName = `${disease} (${diseaseType})`;
+        
+        if (!diseaseMap.has(folderName)) {
+          diseaseMap.set(folderName, []);
+        }
+        diseaseMap.get(folderName)!.push(image);
+      });
 
-      for (const image of selectedImageData) {
-        try {
-          const imageUrl = this.getImageUrl(image);
-          const response = await fetch(imageUrl);
-          
-          if (!response.ok) continue;
+      console.log(`Grouped into ${diseaseMap.size} disease folders:`, Array.from(diseaseMap.keys()));
 
-          const blob = await response.blob();
-          const filename = image.original_filename || `image_${image.id}.jpg`;
-          
-          selectedFolder.file(filename, blob);
-        } catch (error) {
-          console.error(`Error downloading image ${image.id}:`, error);
+      // Create folders for each disease and download images
+      for (const [folderName, images] of diseaseMap.entries()) {
+        const diseaseFolder = zip.folder(folderName);
+        
+        if (!diseaseFolder) {
+          console.error(`Failed to create folder for disease: ${folderName}`);
+          continue;
+        }
+
+        console.log(`Processing ${images.length} images for disease: ${folderName}`);
+
+        for (const image of images) {
+          try {
+            const imageUrl = this.getImageUrl(image);
+            console.log(`Downloading image: ${image.id} from ${imageUrl}`);
+            
+            const response = await fetch(imageUrl);
+            
+            if (!response.ok) {
+              console.warn(`Failed to download image ${image.id}: ${response.statusText}`);
+              continue;
+            }
+
+            const blob = await response.blob();
+            let filename = image.original_filename || `image_${image.id}.jpg`;
+            
+            // Append "unverified" to filename if image is not verified
+            if (!image.is_verified) {
+              const fileExtension = filename.substring(filename.lastIndexOf('.'));
+              const baseName = filename.substring(0, filename.lastIndexOf('.'));
+              filename = `${baseName}_unverified${fileExtension}`;
+            }
+            
+            console.log(`Adding file to ZIP: ${filename} (${blob.size} bytes)`);
+            diseaseFolder.file(filename, blob);
+          } catch (error) {
+            console.error(`Error downloading image ${image.id}:`, error);
+          }
         }
       }
 
       // Generate and download ZIP
+      console.log('Generating ZIP file...');
       const content = await zip.generateAsync({ type: 'blob' });
       const timestamp = new Date().toISOString().split('T')[0];
       const zipFilename = `selected_images_${timestamp}.zip`;
       
+      console.log(`Saving ZIP file: ${zipFilename} (${content.size} bytes)`);
       saveAs(content, zipFilename);
       
     } catch (error) {
@@ -675,11 +850,28 @@ export class VerifiedImagesComponent implements OnInit {
   }
 
   selectAllImages() {
-    this.getFilteredFolders().forEach(folder => {
-      folder.images.forEach(image => {
-        this.selectedImages.add(image.id);
-      });
+    // Select all images from currently visible (expanded) main folders
+    this.getFilteredMainFolders().forEach(mainFolder => {
+      if (mainFolder.expanded) {
+        mainFolder.subFolders.forEach(subFolder => {
+          subFolder.images.forEach(image => {
+            this.selectedImages.add(image.id);
+          });
+        });
+      }
     });
+    
+    // If no main folders are expanded, select from all visible subfolders
+    const expandedFolders = this.getFilteredMainFolders().filter(folder => folder.expanded);
+    if (expandedFolders.length === 0) {
+      this.getFilteredMainFolders().forEach(mainFolder => {
+        mainFolder.subFolders.forEach(subFolder => {
+          subFolder.images.forEach(image => {
+            this.selectedImages.add(image.id);
+          });
+        });
+      });
+    }
   }
 
   deselectAllImages() {
@@ -728,56 +920,26 @@ export class VerifiedImagesComponent implements OnInit {
     return diseaseType === 'leaf' ? 'text-green-600' : 'text-orange-600';
   }
 
-  // Get disease type - use the model_used field from the API
+  // Get disease type - use the disease_type field from the API
   getDiseaseType(image: MangoImage): 'leaf' | 'fruit' | 'unknown' {
-    // Priority 1: Use the model_used field from the backend API (most reliable)
+    console.log('getDiseaseType called with:', {
+      id: image.id,
+      predicted_class: image.predicted_class,
+      disease_type: image.disease_type,
+      model_used: image.model_used
+    });
+    
+    // Use the disease_type field from the backend API (most reliable)
+    if (image.disease_type && image.disease_type !== 'unknown') {
+      return image.disease_type;
+    }
+    
+    // Fallback to model_used if available
     if (image.model_used) {
       return image.model_used;
     }
     
-    // Priority 2: Use the disease_type field if available
-    if (image.disease_type && image.disease_type !== 'unknown') {
-      return image.disease_type;
-    }
-
-    // Fallback: Enhanced classification based on disease name
-    if (image?.disease_classification || image?.predicted_class) {
-      const diseaseName = (image.disease_classification || image.predicted_class).toLowerCase();
-      
-      // Leaf diseases (typically affect leaves, shoots, branches)
-      const leafDiseases = [
-        'anthracnose', 'powdery mildew', 'sooty mould', 'die back', 
-        'bacterial canker', 'gall midge', 'cutting weevil', 'alternaria',
-        'leaf spot', 'blight', 'leaf', 'mildew', 'canker', 'wilt'
-      ];
-      
-      // Fruit diseases (typically affect fruits during ripening/storage)
-      const fruitDiseases = [
-        'black mould rot', 'stem end rot', 'fruit rot', 'fruit',
-        'rot', 'mold', 'mould', 'decay'
-      ];
-      
-      // Check for leaf disease patterns
-      for (const leafPattern of leafDiseases) {
-        if (diseaseName.includes(leafPattern)) {
-          return 'leaf';
-        }
-      }
-      
-      // Check for fruit disease patterns
-      for (const fruitPattern of fruitDiseases) {
-        if (diseaseName.includes(fruitPattern)) {
-          return 'fruit';
-        }
-      }
-
-      // Special handling for "Healthy" - default to leaf
-      if (diseaseName.includes('healthy')) {
-        return 'leaf';
-      }
-    }
-    
-    // Default fallback
+    // If neither field is available, return unknown
     return 'unknown';
   }
 

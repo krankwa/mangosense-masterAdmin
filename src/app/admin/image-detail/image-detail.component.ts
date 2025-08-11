@@ -263,58 +263,30 @@ export class ImageDetailComponent implements OnInit {
   }
 
   getDiseaseType(): 'leaf' | 'fruit' | 'unknown' {
-    // Use only currently available data from the API
+    // Use the disease_type field from the API
     const image = this.imageData;
     if (!image) return 'unknown';
     
-    // Priority 1: Use the model_used field from the backend API (most reliable)
+    console.log(`Image Detail - Image ${image.id}:`, {
+      model_used: image.model_used,
+      disease_type: image.disease_type,
+      predicted_class: image.predicted_class
+    });
+    
+    // Use the disease_type field from the backend API (most reliable)
+    if (image.disease_type && image.disease_type !== 'unknown') {
+      console.log(`Image Detail - Using disease_type: ${image.disease_type}`);
+      return image.disease_type;
+    }
+    
+    // Fallback to model_used if available
     if (image.model_used) {
+      console.log(`Image Detail - Using model_used: ${image.model_used}`);
       return image.model_used;
     }
     
-    // Priority 2: Use the disease_type field if available
-    if (image.disease_type && image.disease_type !== 'unknown') {
-      return image.disease_type;
-    }
-
-    // Fallback: Enhanced classification based on disease name
-    if (image?.disease_classification || image?.predicted_class) {
-      const diseaseName = (image.disease_classification || image.predicted_class).toLowerCase();
-      
-      // Leaf diseases (typically affect leaves, shoots, branches)
-      const leafDiseases = [
-        'anthracnose', 'powdery mildew', 'sooty mould', 'die back', 
-        'bacterial canker', 'gall midge', 'cutting weevil', 'alternaria',
-        'leaf spot', 'blight', 'leaf', 'mildew', 'canker', 'wilt'
-      ];
-      
-      // Fruit diseases (typically affect fruits during ripening/storage)
-      const fruitDiseases = [
-        'black mould rot', 'stem end rot', 'fruit rot', 'fruit',
-        'rot', 'mold', 'mould', 'decay'
-      ];
-      
-      // Check for leaf disease patterns
-      for (const leafPattern of leafDiseases) {
-        if (diseaseName.includes(leafPattern)) {
-          return 'leaf';
-        }
-      }
-      
-      // Check for fruit disease patterns
-      for (const fruitPattern of fruitDiseases) {
-        if (diseaseName.includes(fruitPattern)) {
-          return 'fruit';
-        }
-      }
-
-      // Special handling for "Healthy" - default to leaf
-      if (diseaseName.includes('healthy')) {
-        return 'leaf';
-      }
-    }
-    
-    // Default fallback
+    console.log('Image Detail - No disease_type or model_used field, returning unknown');
+    // If neither field is available, return unknown
     return 'unknown';
   }
 }
