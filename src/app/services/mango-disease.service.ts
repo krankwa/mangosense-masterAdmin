@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, of, catchError, map } from 'rxjs';
+import { Observable, of, catchError, map, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 export interface ApiResponse<T> {
@@ -64,9 +64,11 @@ export interface UserConfirmation {
   location_consent: boolean;
   latitude?: number;
   longitude?: number;
+  location_accuracy?: number;
   address?: string;
   created_at?: string;  // For compatibility
   confirmed_at?: string; // Backend returns this
+  confidence_score?: number;
   image_data?: {
     image_url: string;
     original_filename: string;
@@ -394,6 +396,7 @@ export class MangoDiseaseService {
     page_size?: number;
     start_date?: string;
     end_date?: string;
+    image_id?: number;
   }): Observable<ApiResponse<{
     results: UserConfirmation[];
     count: number;
@@ -416,6 +419,85 @@ export class MangoDiseaseService {
         catchError(error => {
           console.error('Error fetching user confirmations:', error);
           throw error;
+        })
+      );
+  }
+
+  // Get user confirmation for a specific image
+  getUserConfirmationForImage(imageId: number): Observable<UserConfirmation | null> {
+    let httpParams = new HttpParams().set('image_id', imageId.toString()).set('page_size', '1');
+    const url = `${this.apiUrl}/user-confirmations/`;
+    
+    console.log('🔍 Getting user confirmation for image:', imageId);
+    console.log('🌐 API URL:', url);
+    console.log('📤 Query params:', httpParams.toString());
+
+    return this.http.get<ApiResponse<any>>(url, { params: httpParams })
+      .pipe(
+        tap((response: any) => {
+          console.log('📥 Raw API response:', response);
+          console.log('📥 Response success:', response?.success);
+          console.log('📥 Response data:', response?.data);
+        }),
+        map((response: any) => {
+          if (!response || !response.success || !response.data) {
+            console.log('❌ No valid response data');
+            return null;
+          }
+
+          // backend may return data.confirmations or data.results or data
+          const rawList =
+            response.data?.confirmations ||
+            response.data?.results ||
+            (Array.isArray(response.data) ? response.data : response.data);
+
+          console.log('🔍 Raw list from response:', rawList);
+
+          const list = Array.isArray(rawList) ? rawList : (rawList?.results || rawList?.confirmations || []);
+          console.log('🔍 Processed list:', list);
+          
+          const conf = list.find((c: any) =>
+            (c.image && (c.image.id === imageId || c.image_id === imageId)) ||
+            c.image_id === imageId
+          );
+
+          console.log('🔍 Found confirmation:', conf);
+
+          if (!conf) {
+            console.log('❌ No confirmation found for image', imageId);
+            return null;
+          }
+
+          const normalized: UserConfirmation = {
+            id: conf.id ?? null,
+            image_id: conf.image?.id ?? conf.image_id ?? imageId,
+            predicted_disease: conf.predicted_disease ?? conf.prediction ?? '',
+            is_correct: conf.is_correct ?? null,
+            user_feedback: conf.user_feedback ?? conf.feedback ?? '',
+            location_consent: !!(conf.location?.consent_given ?? conf.location_consent_given ?? conf.location_consent),
+            latitude: conf.location?.latitude ?? conf.latitude ?? undefined,
+            longitude: conf.location?.longitude ?? conf.longitude ?? undefined,
+            location_accuracy: conf.location?.accuracy ?? conf.location_accuracy ?? undefined,
+            address: conf.location?.address ?? conf.location_address ?? conf.address ?? undefined,
+            created_at: conf.created_at ?? conf.confirmed_at ?? undefined,
+            confirmed_at: conf.confirmed_at ?? conf.created_at ?? undefined,
+            confidence_score: conf.confidence_score ?? conf.confidence ?? undefined,
+            image_data: {
+              image_url: conf.image?.image_url ?? conf.image?.image ?? '',
+              original_filename: conf.image?.original_filename ?? '',
+              disease_type: conf.image?.disease_type ?? 'unknown'
+            },
+          };
+
+          // optional: confidence mapping
+          (normalized as any).location_accuracy = conf.location?.accuracy ?? conf.location_accuracy ?? undefined;
+
+          console.log('✅ Normalized confirmation:', normalized);
+          return normalized;
+        }),
+        catchError(error => {
+          console.error('❌ Error fetching confirmation for image:', error);
+          return of(null);
         })
       );
   }

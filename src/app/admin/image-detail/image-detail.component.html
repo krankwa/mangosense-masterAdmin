@@ -131,11 +131,6 @@
             </div>
             
             <div class="flex justify-between">
-              <span class="text-gray-600">File Size:</span>
-              <span class="font-medium">{{ formatFileSize(imageData.image_size) }}</span>
-            </div>
-            
-            <div class="flex justify-between">
               <span class="text-gray-600">Uploaded:</span>
               <span class="font-medium">{{ formatDateTime(imageData.uploaded_at) }}</span>
             </div>
@@ -356,146 +351,400 @@
           <div>
             <h3 class="text-lg font-semibold text-gray-800 mb-4">⚙️ Technical Information</h3>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div class="bg-gray-50 p-4 rounded-lg">
-                <div class="text-sm text-gray-600 mb-1">Image ID</div>
-                <div class="font-mono text-sm">{{ imageData.id }}</div>
-              </div>
+            <!-- Image Technical Details -->
+            <div class="bg-white p-6 rounded-lg border border-gray-200 mb-6">
+              <h4 class="text-lg font-semibold text-gray-800 mb-4">
+                <i class="fas fa-camera mr-2"></i>Image Technical Details
+              </h4>
               
-              <div class="bg-gray-50 p-4 rounded-lg">
-                <div class="text-sm text-gray-600 mb-1">Processing Time</div>
-                <div class="font-mono text-sm">{{ imageData.processing_time ? (imageData.processing_time + 's') : 'N/A' }}</div>
-              </div>
-              
-              <div class="bg-gray-50 p-4 rounded-lg">
-                <div class="text-sm text-gray-600 mb-1">Image Size</div>
-                <div class="font-mono text-sm">{{ formatFileSize(imageData.image_size) }}</div>
-              </div>
-              
-              <div class="bg-gray-50 p-4 rounded-lg">
-                <div class="text-sm text-gray-600 mb-1">Client IP</div>
-                <div class="font-mono text-sm">{{ imageData.client_ip || 'N/A' }}</div>
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="bg-gray-50 p-4 rounded-lg">
+                  <div class="text-sm text-gray-600 mb-1">Image ID</div>
+                  <div class="font-medium text-gray-900">#{{ imageData.id }}</div>
+                </div>
+                
+                <div class="bg-gray-50 p-4 rounded-lg">
+                  <div class="text-sm text-gray-600 mb-1">Original Filename</div>
+                  <div class="font-medium text-gray-900">{{ imageData.filename || 'Unknown' }}</div>
+                </div>
+                
+                <div class="bg-gray-50 p-4 rounded-lg">
+                  <div class="text-sm text-gray-600 mb-1">Upload Date</div>
+                  <div class="font-medium text-gray-900">{{ formatDateTime(imageData.uploaded_at) }}</div>
+                </div>
+                
+                <div class="bg-gray-50 p-4 rounded-lg" *ngIf="imageData.image_type">
+                  <div class="text-sm text-gray-600 mb-1">Image Type</div>
+                  <div class="font-medium text-gray-900">{{ imageData.image_type | titlecase }}</div>
+                </div>
+                
+                <div class="bg-gray-50 p-4 rounded-lg" *ngIf="imageData.disease_detected">
+                  <div class="text-sm text-gray-600 mb-1">Detected Disease</div>
+                  <div class="font-medium text-gray-900">{{ imageData.disease_detected }}</div>
+                </div>
+                
+                <div class="bg-gray-50 p-4 rounded-lg" *ngIf="imageData.confidence">
+                  <div class="text-sm text-gray-600 mb-1">AI Confidence</div>
+                  <div class="font-medium text-gray-900">{{ (imageData.confidence * 100).toFixed(2) }}%</div>
+                </div>
               </div>
             </div>
             
-            <!-- Model Information -->
-            <div *ngIf="predictionData" class="mt-6">
-              <h4 class="text-md font-semibold text-gray-800 mb-3">🤖 Model Information</h4>
-              <div class="bg-purple-50 p-4 rounded-lg border border-purple-200">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <div class="text-sm text-gray-600 mb-1">Model Used</div>
-                    <div class="font-mono text-sm">{{ predictionData.data.model_used }}-efficientnetb0</div>
+            <!-- Location & GPS Data -->
+            <div *ngIf="userConfirmation && userConfirmation.location_consent" 
+                 class="bg-white p-6 rounded-lg border border-blue-200 mb-6">
+              <h4 class="text-lg font-semibold text-gray-800 mb-4">
+                <i class="fas fa-map-marked-alt mr-2"></i>Location & GPS Information
+              </h4>
+              
+              <div class="bg-blue-50 p-4 rounded-lg mb-4">
+                <div class="flex items-center mb-3">
+                  <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                  <span class="text-blue-800 font-medium">Location data provided with user consent</span>
+                </div>
+              </div>
+              
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div *ngIf="userConfirmation.latitude" class="bg-green-50 p-4 rounded-lg border border-green-200">
+                  <div class="text-sm text-green-700 mb-1 font-medium">
+                    <i class="fas fa-map-pin mr-1"></i>Latitude
                   </div>
-                  
-                  <div>
-                    <div class="text-sm text-gray-600 mb-1">Model Path</div>
-                    <div class="font-mono text-xs">{{ predictionData.data.model_path || 'N/A' }}</div>
+                  <div class="font-mono text-gray-900 text-lg">{{ userConfirmation.latitude }}</div>
+                </div>
+                
+                <div *ngIf="userConfirmation.longitude" class="bg-green-50 p-4 rounded-lg border border-green-200">
+                  <div class="text-sm text-green-700 mb-1 font-medium">
+                    <i class="fas fa-map-pin mr-1"></i>Longitude
                   </div>
-                  
-                  <div>
-                    <div class="text-sm text-gray-600 mb-1">Model Status</div>
-                    <div class="font-mono text-sm">
-                      <span class="text-green-600">✓ Loaded</span>
+                  <div class="font-mono text-gray-900 text-lg">{{ userConfirmation.longitude }}</div>
+                </div>
+                
+                <div *ngIf="userConfirmation.location_accuracy" class="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                  <div class="text-sm text-yellow-700 mb-1 font-medium">
+                    <i class="fas fa-bullseye mr-1"></i>GPS Accuracy
+                  </div>
+                  <div class="font-medium text-gray-900">{{ userConfirmation.location_accuracy }} meters</div>
+                </div>
+                
+                <div *ngIf="userConfirmation.address" class="md:col-span-2 lg:col-span-3 bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <div class="text-sm text-blue-700 mb-2 font-medium">
+                    <i class="fas fa-home mr-1"></i>Address Information
+                  </div>
+                  <div class="font-medium text-gray-900 text-base">{{ userConfirmation.address }}</div>
+                </div>
+                
+                <div class="bg-gray-50 p-4 rounded-lg">
+                  <div class="text-sm text-gray-600 mb-1">Location Consent Status</div>
+                  <div class="font-medium text-green-600">
+                    <i class="fas fa-check-circle mr-1"></i>Consent Given
+                  </div>
+                </div>
+                
+                <div class="bg-gray-50 p-4 rounded-lg">
+                  <div class="text-sm text-gray-600 mb-1">Location Recorded At</div>
+                  <div class="font-medium text-gray-900">{{ formatDateTime(userConfirmation.confirmed_at || userConfirmation.created_at || '') }}</div>
+                </div>
+              </div>
+              
+              <!-- GPS Quality Indicator -->
+              <div *ngIf="userConfirmation.location_accuracy" class="mt-4 p-4 bg-gray-50 rounded-lg">
+                <div class="flex items-center justify-between">
+                  <span class="text-sm text-gray-600">GPS Signal Quality:</span>
+                  <div class="flex items-center">
+                    <span class="text-sm font-medium mr-2" 
+                          [class.text-green-600]="userConfirmation.location_accuracy <= 10"
+                          [class.text-yellow-600]="userConfirmation.location_accuracy > 10 && userConfirmation.location_accuracy <= 50"
+                          [class.text-red-600]="userConfirmation.location_accuracy > 50">
+                      {{ getGPSQuality(userConfirmation.location_accuracy) }}
+                    </span>
+                    <span class="inline-flex px-2 py-1 text-xs rounded-full"
+                          [class.bg-green-100]="userConfirmation.location_accuracy <= 10"
+                          [class.text-green-800]="userConfirmation.location_accuracy <= 10"
+                          [class.bg-yellow-100]="userConfirmation.location_accuracy > 10 && userConfirmation.location_accuracy <= 50"
+                          [class.text-yellow-800]="userConfirmation.location_accuracy > 10 && userConfirmation.location_accuracy <= 50"
+                          [class.bg-red-100]="userConfirmation.location_accuracy > 50"
+                          [class.text-red-800]="userConfirmation.location_accuracy > 50">
+                      ±{{ userConfirmation.location_accuracy }}m
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- No Location Data Available -->
+            <div *ngIf="!userConfirmation || !userConfirmation.location_consent" 
+                 class="bg-white p-6 rounded-lg border border-gray-200 mb-6">
+              <h4 class="text-lg font-semibold text-gray-800 mb-4">
+                <i class="fas fa-map-marked-alt mr-2"></i>Location & GPS Information
+              </h4>
+              
+              <div class="text-center py-8">
+                <div class="text-gray-400 text-4xl mb-4">📍</div>
+                <h5 class="text-md font-medium text-gray-600 mb-2">No Location Data Available</h5>
+                <p class="text-gray-500 text-sm" *ngIf="!userConfirmation">No user confirmation data available for this image.</p>
+                <p class="text-gray-500 text-sm" *ngIf="userConfirmation && !userConfirmation.location_consent">User did not consent to share location information.</p>
+              </div>
+            </div>
+            
+            <!-- AI Model Information -->
+            <div class="bg-white p-6 rounded-lg border border-gray-200 mb-6">
+              <h4 class="text-lg font-semibold text-gray-800 mb-4">
+                <i class="fas fa-brain mr-2"></i>AI Model Information
+              </h4>
+              
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                  <div class="text-sm text-purple-700 mb-1">Model Architecture</div>
+                  <div class="font-medium text-gray-900">EfficientNetB0</div>
+                </div>
+                
+                <div class="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                  <div class="text-sm text-purple-700 mb-1">Model Type</div>
+                  <div class="font-medium text-gray-900">{{ imageData.image_type === 'fruit' ? 'Fruit Disease Detection' : 'Leaf Disease Detection' }}</div>
+                </div>
+                
+                <div class="bg-purple-50 p-4 rounded-lg border border-purple-200" *ngIf="imageData.confidence">
+                  <div class="text-sm text-purple-700 mb-1">Prediction Confidence</div>
+                  <div class="font-medium text-gray-900">{{ (imageData.confidence * 100).toFixed(2) }}%</div>
+                </div>
+                
+                <div class="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                  <div class="text-sm text-purple-700 mb-1">Processing Status</div>
+                  <div class="font-medium text-green-600">
+                    <i class="fas fa-check-circle mr-1"></i>Complete
+                  </div>
+                </div>
+                
+                <div class="bg-purple-50 p-4 rounded-lg border border-purple-200" *ngIf="userConfirmation">
+                  <div class="text-sm text-purple-700 mb-1">User Verification</div>
+                  <div class="font-medium" 
+                       [class.text-green-600]="userConfirmation.is_correct"
+                       [class.text-red-600]="!userConfirmation.is_correct">
+                    <i class="fas mr-1" 
+                       [class.fa-check-circle]="userConfirmation.is_correct"
+                       [class.fa-times-circle]="!userConfirmation.is_correct"></i>
+                    {{ userConfirmation.is_correct ? 'Verified as Correct' : 'Reported as Incorrect' }}
+                  </div>
+                </div>
+                
+                <div class="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                  <div class="text-sm text-purple-700 mb-1">Analysis Date</div>
+                  <div class="font-medium text-gray-900">{{ formatDateTime(imageData.uploaded_at) }}</div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Model Debug Information -->
+            <div *ngIf="predictionData" class="bg-white p-6 rounded-lg border border-gray-200">
+              <h4 class="text-lg font-semibold text-gray-800 mb-4">
+                <i class="fas fa-bug mr-2"></i>Model Debug Information
+              </h4>
+              
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-gray-50 p-4 rounded-lg">
+                  <div class="text-sm text-gray-600 mb-1">Model Used</div>
+                  <div class="font-mono text-sm">{{ predictionData.data.model_used }}-efficientnetb0</div>
+                </div>
+                
+                <div class="bg-gray-50 p-4 rounded-lg" *ngIf="predictionData.data.model_path">
+                  <div class="text-sm text-gray-600 mb-1">Model Path</div>
+                  <div class="font-mono text-xs break-all">{{ predictionData.data.model_path }}</div>
+                </div>
+                
+                <div class="bg-gray-50 p-4 rounded-lg" *ngIf="predictionData.data.debug_info?.processed_size">
+                  <div class="text-sm text-gray-600 mb-1">Processed Size</div>
+                  <div class="font-mono text-sm">{{ predictionData.data.debug_info.processed_size }}</div>
+                </div>
+                
+                <div class="bg-gray-50 p-4 rounded-lg">
+                  <div class="text-sm text-gray-600 mb-1">Model Status</div>
+                  <div class="font-medium text-green-600">
+                    <i class="fas fa-check-circle mr-1"></i>Loaded
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Image URL Debug -->
+              <div class="mt-6">
+                <h5 class="text-md font-medium text-gray-800 mb-3">🔗 Image URL Debug</h5>
+                <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                  <div class="space-y-3">
+                    <div>
+                      <div class="text-sm text-yellow-700 mb-1">Current URL</div>
+                      <div class="font-mono text-xs break-all bg-white p-2 rounded border">{{ getImageUrl() }}</div>
+                    </div>
+                    <div>
+                      <div class="text-sm text-yellow-700 mb-1">Original Path</div>
+                      <div class="font-mono text-xs break-all bg-white p-2 rounded border">{{ imageData.image }}</div>
+                    </div>
+                    <div *ngIf="imageData.image_url">
+                      <div class="text-sm text-yellow-700 mb-1">Processed URL</div>
+                      <div class="font-mono text-xs break-all bg-white p-2 rounded border">{{ imageData.image_url }}</div>
                     </div>
                   </div>
-                  
-                  <div>
-                    <div class="text-sm text-gray-600 mb-1">Processed Size</div>
-                    <div class="font-mono text-sm">{{ predictionData.data.debug_info.processed_size }}</div>
-                  </div>
                 </div>
               </div>
             </div>
             
-            <!-- Image URL Debug -->
-            <div class="mt-6">
-              <h4 class="text-md font-semibold text-gray-800 mb-3">🔗 Image URL Information</h4>
-              <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                <div class="space-y-2">
-                  <div>
-                    <div class="text-sm text-gray-600">Current URL</div>
-                    <div class="font-mono text-xs break-all">{{ getImageUrl() }}</div>
-                  </div>
-                  <div>
-                    <div class="text-sm text-gray-600">Original Path</div>
-                    <div class="font-mono text-xs break-all">{{ imageData.image }}</div>
-                  </div>
-                  <div *ngIf="imageData.image_url">
-                    <div class="text-sm text-gray-600">Processed URL</div>
-                    <div class="font-mono text-xs break-all">{{ imageData.image_url }}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
         
         <!-- Feedback Tab -->
         <div *ngIf="activeTab === 'feedback'" class="space-y-6">
           <div>
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">💬 User Feedback</h3>
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">💬 User Verification & Feedback</h3>
             
-            <div *ngIf="userConfirmation" class="space-y-4">
-              <!-- Confirmation Status -->
-              <div class="bg-gray-50 p-4 rounded-lg">
-                <div class="flex items-center justify-between mb-3">
-                  <h4 class="text-md font-medium text-gray-800">Prediction Verification</h4>
-                  <span class="inline-flex px-3 py-1 text-sm font-semibold rounded-full"
-                        [class.bg-green-100]="userConfirmation.is_correct"
-                        [class.text-green-800]="userConfirmation.is_correct"
-                        [class.bg-red-100]="!userConfirmation.is_correct"
-                        [class.text-red-800]="!userConfirmation.is_correct">
-                    {{ userConfirmation.is_correct ? '✓ Correct' : '✗ Incorrect' }}
-                  </span>
+            <div *ngIf="userConfirmation" class="space-y-6">
+              
+              <!-- User Verification Decision (is_correct) -->
+              <div class="bg-white p-6 rounded-lg border-2" 
+                   [class.border-green-300]="userConfirmation.is_correct"
+                   [class.border-red-300]="!userConfirmation.is_correct">
+                <div class="flex items-center justify-between mb-4">
+                  <h4 class="text-lg font-semibold text-gray-800">
+                    <i class="fas fa-clipboard-check mr-2"></i>
+                    User Verification Decision
+                  </h4>
+                  <div class="text-right">
+                    <span class="inline-flex items-center px-4 py-2 text-lg font-bold rounded-full"
+                          [class.bg-green-100]="userConfirmation.is_correct"
+                          [class.text-green-800]="userConfirmation.is_correct"
+                          [class.bg-red-100]="!userConfirmation.is_correct"
+                          [class.text-red-800]="!userConfirmation.is_correct">
+                      <i [class.fas]="true"
+                         [class.fa-check-circle]="userConfirmation.is_correct"
+                         [class.fa-times-circle]="!userConfirmation.is_correct"
+                         class="mr-2"></i>
+                      {{ userConfirmation.is_correct ? 'CORRECT MATCH' : 'INCORRECT MATCH' }}
+                    </span>
+                  </div>
                 </div>
                 
-                <div class="space-y-2 text-sm">
-                  <div>
-                    <span class="text-gray-600">Predicted Disease:</span>
-                    <span class="font-medium ml-2">{{ userConfirmation.predicted_disease }}</span>
-                  </div>
-                  <div>
-                    <span class="text-gray-600">Verified On:</span>
-                    <span class="font-medium ml-2">{{ (userConfirmation.confirmed_at || userConfirmation.created_at) | date:'medium' }}</span>
+                <div class="bg-gray-50 p-4 rounded-lg">
+                  <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span class="text-gray-600 font-medium">AI Predicted Disease:</span>
+                      <div class="font-semibold text-gray-800 mt-1">{{ userConfirmation.predicted_disease }}</div>
+                    </div>
+                    <div>
+                      <span class="text-gray-600 font-medium">User Decision:</span>
+                      <div class="font-semibold mt-1" 
+                           [class.text-green-600]="userConfirmation.is_correct"
+                           [class.text-red-600]="!userConfirmation.is_correct">
+                        {{ userConfirmation.is_correct ? 'Yes, this is a match' : 'No, this does not match' }}
+                      </div>
+                    </div>
+                    <div>
+                      <span class="text-gray-600 font-medium">Verified On:</span>
+                      <div class="font-semibold text-gray-800 mt-1">{{ formatDateTime(userConfirmation.confirmed_at || userConfirmation.created_at || '') }}</div>
+                    </div>
+                    <div *ngIf="userConfirmation.confidence_score">
+                      <span class="text-gray-600 font-medium">AI Confidence Score:</span>
+                      <div class="font-semibold text-gray-800 mt-1">{{ (userConfirmation.confidence_score * 100).toFixed(1) }}%</div>
+                    </div>
                   </div>
                 </div>
               </div>
               
-              <!-- User Comments -->
-              <div *ngIf="userConfirmation.user_feedback" class="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                <h4 class="text-md font-medium text-blue-800 mb-3">
-                  <i class="fas fa-comment mr-2"></i>User Comments
+              <!-- User Comments/Feedback -->
+              <div class="bg-white p-6 rounded-lg border-2 border-blue-200">
+                <h4 class="text-lg font-semibold text-gray-800 mb-4">
+                  <i class="fas fa-comment-dots mr-2"></i>
+                  User Comments & Feedback
                 </h4>
-                <div class="text-sm text-blue-900 leading-relaxed">
-                  "{{ userConfirmation.user_feedback }}"
+                
+                <div *ngIf="userConfirmation.user_feedback" class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <div class="flex items-start space-x-3">
+                    <i class="fas fa-quote-left text-blue-500 text-xl mt-1"></i>
+                    <div class="flex-1">
+                      <p class="text-blue-900 italic leading-relaxed text-base">{{ userConfirmation.user_feedback }}</p>
+                    </div>
+                    <i class="fas fa-quote-right text-blue-500 text-xl mt-1"></i>
+                  </div>
+                </div>
+                
+                <div *ngIf="!userConfirmation.user_feedback" class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                  <div class="text-center text-gray-500">
+                    <i class="fas fa-comment-slash text-2xl mb-2"></i>
+                    <p class="text-sm">No additional comments provided by the user</p>
+                  </div>
                 </div>
               </div>
               
-              <!-- Location Information -->
-              <div *ngIf="userConfirmation.location_consent && (userConfirmation.latitude || userConfirmation.address)" 
-                   class="bg-green-50 p-4 rounded-lg border border-green-200">
-                <h4 class="text-md font-medium text-green-800 mb-3">
-                  <i class="fas fa-map-marker-alt mr-2"></i>Location Data
+              <!-- Location Information Summary -->
+              <div *ngIf="userConfirmation.location_consent" class="bg-white p-6 rounded-lg border-2 border-green-200">
+                <h4 class="text-lg font-semibold text-gray-800 mb-4">
+                  <i class="fas fa-map-marker-alt mr-2"></i>
+                  Location Information Summary
                 </h4>
-                <div class="space-y-2 text-sm text-green-900">
-                  <div *ngIf="userConfirmation.address">
-                    <span class="text-green-600">Address:</span>
-                    <span class="font-medium ml-2">{{ userConfirmation.address }}</span>
+                
+                <div class="bg-green-50 p-4 rounded-lg">
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div *ngIf="userConfirmation.address">
+                      <span class="text-green-700 font-medium">Address:</span>
+                      <div class="font-semibold text-gray-800 mt-1">{{ userConfirmation.address }}</div>
+                    </div>
+                    <div *ngIf="userConfirmation.latitude && userConfirmation.longitude">
+                      <span class="text-green-700 font-medium">GPS Coordinates:</span>
+                      <div class="font-mono text-gray-800 mt-1">{{ userConfirmation.latitude }}, {{ userConfirmation.longitude }}</div>
+                    </div>
+                    <div *ngIf="userConfirmation.location_accuracy">
+                      <span class="text-green-700 font-medium">GPS Accuracy:</span>
+                      <div class="font-semibold text-gray-800 mt-1">{{ userConfirmation.location_accuracy }}m</div>
+                    </div>
+                    <div>
+                      <span class="text-green-700 font-medium">Location Consent:</span>
+                      <div class="font-semibold text-green-600 mt-1">✓ Given</div>
+                    </div>
                   </div>
-                  <div *ngIf="userConfirmation.latitude && userConfirmation.longitude">
-                    <span class="text-green-600">Coordinates:</span>
-                    <span class="font-medium ml-2">{{ userConfirmation.latitude }}, {{ userConfirmation.longitude }}</span>
+                  
+                  <div class="mt-4 pt-4 border-t border-green-200">
+                    <p class="text-xs text-green-700">
+                      <i class="fas fa-info-circle mr-1"></i>
+                      This user consented to share their location data. See Technical tab for detailed location information.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Confirmation Metadata -->
+              <div class="bg-gray-50 p-4 rounded-lg border">
+                <h4 class="text-md font-medium text-gray-800 mb-3">
+                  <i class="fas fa-info-circle mr-2"></i>Confirmation Details
+                </h4>
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span class="text-gray-600">Confirmation ID:</span>
+                    <span class="font-medium ml-2">#{{ userConfirmation.id }}</span>
+                  </div>
+                  <div>
+                    <span class="text-gray-600">Image ID:</span>
+                    <span class="font-medium ml-2">#{{ userConfirmation.image_id }}</span>
+                  </div>
+                  <div>
+                    <span class="text-gray-600">Location Consent:</span>
+                    <span class="font-medium ml-2">
+                      <span *ngIf="userConfirmation.location_consent" class="text-green-600">✓ Given</span>
+                      <span *ngIf="!userConfirmation.location_consent" class="text-red-600">✗ Not Given</span>
+                    </span>
+                  </div>
+                  <div>
+                    <span class="text-gray-600">Feedback Provided:</span>
+                    <span class="font-medium ml-2">
+                      <span *ngIf="userConfirmation.user_feedback" class="text-green-600">✓ Yes</span>
+                      <span *ngIf="!userConfirmation.user_feedback" class="text-gray-600">✗ No</span>
+                    </span>
                   </div>
                 </div>
               </div>
             </div>
             
             <!-- No Feedback Available -->
-            <div *ngIf="!userConfirmation" class="text-center py-8">
-              <div class="text-gray-400 text-4xl mb-4">💭</div>
-              <h4 class="text-lg font-medium text-gray-600 mb-2">No User Feedback Available</h4>
-              <p class="text-gray-500">This image hasn't been verified by users yet, or the verification data is not available.</p>
+            <div *ngIf="!userConfirmation" class="text-center py-12">
+              <div class="text-gray-400 text-6xl mb-4">💭</div>
+              <h4 class="text-xl font-medium text-gray-600 mb-3">No User Verification Available</h4>
+              <p class="text-gray-500 mb-2">This image hasn't been verified by users yet.</p>
+              <p class="text-sm text-gray-400">User verification includes confirmation of AI prediction accuracy and optional feedback comments.</p>
             </div>
           </div>
         </div>

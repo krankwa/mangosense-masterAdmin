@@ -44,6 +44,10 @@ export interface PredictionData {
 export interface ImageDetailData extends MangoImage {
   prediction_data?: PredictionData;
   verified_date?: string | null;
+  filename?: string;
+  image_type?: string;
+  disease_detected?: string;
+  confidence?: number;
 }
 
 @Component({
@@ -101,27 +105,11 @@ export class ImageDetailComponent implements OnInit {
 
       // Load user confirmation for this image
       try {
-        const confirmationResponse = await this.mangoDiseaseService.getUserConfirmations().toPromise();
-        console.log('🔍 Full confirmation response:', confirmationResponse);
-        if (confirmationResponse && confirmationResponse.success) {
-          // Find confirmation for this specific image
-          console.log('🔍 Looking for image_id:', this.imageId);
-          
-          // Check if it's using 'results' or 'confirmations' structure
-          const confirmations = confirmationResponse.data.results || [];
-          console.log('🔍 Available confirmations:', confirmations);
-          
-          const confirmation = confirmations.find(
-            (conf: UserConfirmation) => conf.image_id === this.imageId
-          );
-          console.log('🔍 Found confirmation:', confirmation);
-          
-          if (confirmation) {
-            this.userConfirmation = confirmation;
-            console.log('✅ User confirmation loaded:', this.userConfirmation);
-          } else {
-            console.log('❌ No confirmation found for image_id:', this.imageId);
-          }
+        this.userConfirmation = await this.mangoDiseaseService.getUserConfirmationForImage(this.imageId).toPromise() || null;
+        if (this.userConfirmation) {
+          console.log('✅ User confirmation loaded:', this.userConfirmation);
+        } else {
+          console.log('❌ No confirmation found for image_id:', this.imageId);
         }
       } catch (confirmationError) {
         console.warn('Could not load user confirmation data:', confirmationError);
@@ -241,14 +229,15 @@ export class ImageDetailComponent implements OnInit {
     return finalUrl;
   }
 
-  formatDateTime(dateString: string | null): string {
+  formatDateTime(dateString: string | null | undefined): string {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleString();
   }
 
-  formatFileSize(sizeStr: string): string {
-    if (!sizeStr || sizeStr === 'Unknown') return 'Unknown';
-    return sizeStr;
+  getGPSQuality(accuracy: number): string {
+    if (accuracy <= 10) return 'Excellent';
+    if (accuracy <= 50) return 'Good';
+    return 'Poor';
   }
 
   onImageError(event: any) {
