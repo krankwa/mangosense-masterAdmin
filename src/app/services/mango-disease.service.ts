@@ -2,7 +2,6 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, of, catchError, map, tap } from 'rxjs';
 import { environment } from '../../environments/environment';
-
 export interface ApiResponse<T> {
   success: boolean;
   message?: string;
@@ -379,11 +378,70 @@ export class MangoDiseaseService {
   getImagePredictionDetails(imageId: number): Observable<ApiResponse<any>> {
     return this.http.get<ApiResponse<any>>(`${this.apiUrl}/classified-images/${imageId}/prediction-details/`)
       .pipe(
-        catchError(error => {
-          console.error('Error fetching prediction details:', error);
-          throw error;
-        })
-      );
+      map(resp => {
+        const wrapper = resp?.data?.prediction_data ?? resp?.data ?? resp;
+        const pd = wrapper?.data ?? wrapper ?? {};
+
+        const primary = pd?.primary_prediction ?? pd?.primary ?? null;
+        let top3 = Array.isArray(pd?.top_3_predictions) ? pd.top_3_predictions : (Array.isArray(pd?.top_3) ? pd.top_3 : []);
+
+        // helper to convert all confidence shapes to numeric percentage
+        const toPercent = (raw: any): number => {
+          if (raw === null || raw === undefined) return 0;
+          if (typeof raw === 'string') {
+            const s = raw.trim();
+            const withoutPercent = s.endsWith('%') ? s.slice(0, -1) : s;
+            const n = parseFloat(withoutPercent.replace(/[^0-9.\-]/g, ''));
+            return isNaN(n) ? 0 : n;
+          }
+          if (typeof raw === 'number') {
+            return raw <= 1 ? raw * 100 : raw;
+          }
+          return 0;
+        };
+
+        // ensure top3 exists
+        if (!Array.isArray(top3) || top3.length === 0) {
+          if (primary) top3 = [primary];
+          else top3 = [];
+        }
+
+        // ensure primary is first and unique
+        if (primary) {
+          top3 = [primary, ...top3.filter((x:any) => x?.disease !== primary.disease)].slice(0,3);
+        } else {
+          top3 = top3.slice(0,3);
+        }
+
+        const normalize = (p:any) => {
+          const score = toPercent(p?.confidence_score ?? p?.confidence ?? p?.confidence_formatted ?? p?.confidence_formatted);
+          return {
+            disease: p?.disease ?? p?.label ?? 'Unknown',
+            confidence_score: Number(score),
+            confidence_level: p?.confidence_level ?? (score > 80 ? 'High' : score > 60 ? 'Medium' : 'Low'),
+            treatment: p?.treatment ?? '',
+            detection_type: p?.detection_type ?? ''
+          };
+        };
+
+        const normalizedPrimary = normalize(primary ?? top3[0] ?? {});
+        const normalizedTop3 = top3.map(normalize).slice(0,3);
+
+        return {
+          success: wrapper?.success ?? true,
+          message: wrapper?.message ?? '',
+          data: {
+            primary_prediction: normalizedPrimary,
+            top_3_predictions: normalizedTop3,
+            prediction_summary: pd?.prediction_summary ?? {},
+            saved_image_id: pd?.saved_image_id ?? null,
+            model_used: pd?.model_used ?? null,
+            debug_info: pd?.debug_info ?? {}
+          },
+          timestamp: wrapper?.timestamp ?? new Date().toISOString()
+        } as ApiResponse<any>;
+      })
+    );
   }
 
   // User Confirmation Methods

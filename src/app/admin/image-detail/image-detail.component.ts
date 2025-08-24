@@ -59,7 +59,7 @@ export interface ImageDetailData extends MangoImage {
 export class ImageDetailComponent implements OnInit {
   imageId: number = 0;
   imageData: ImageDetailData | null = null;
-  predictionData: PredictionData | null = null;
+  predictionData: ApiResponse<any> | null = null;
   userConfirmation: UserConfirmation | null = null;
   loading = true;
   error: string | null = null;
@@ -99,8 +99,9 @@ export class ImageDetailComponent implements OnInit {
 
       // Load prediction details
       const predictionResponse = await this.mangoDiseaseService.getImagePredictionDetails(this.imageId).toPromise();
+      console.debug('DEBUG predictionResponse (from service):', predictionResponse);
       if (predictionResponse && predictionResponse.success) {
-        this.predictionData = predictionResponse.data.prediction_data;
+        this.predictionData = predictionResponse;
       }
 
       // Load user confirmation for this image
